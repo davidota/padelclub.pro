@@ -1,20 +1,51 @@
+apiVersion: azconfig.io/v1
+kind: AzureAppConfigurationProvider
+metadata:
+  name: spinventory-configmap
+spec:
+  endpoint: https://EMAZ-GVMS-D-GVMS-appconf.azconfig.io
+  target:
+    configMapName: spinventory-configmap
+    configMapData:
+      type: json
+      key: setting.json
+  auth:
+    servicePrincipalReference: aks-appconf-secret
+  configuration:
+    refresh:
+      enabled: true
+      interval: 1m
+      monitoring:
+        keyValues:
+          - key: Settings:Sentinel
+  secret:
+    target:
+      secretName: secret-created-by-appconfig-provider
+    auth:
+      keyVaults:
+        - uri: https://gvms-key-vault-dev.vault.azure.net
+          servicePrincipalReference: aks-appconf-secret
+    refresh:
+      enabled: true
+      interval: 1m
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: my-app
+  name: spinventory
   namespace: default
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: my-app
+      app: spinventory
   template:
     metadata:
       labels:
-        app: my-app
+        app: spinventory
     spec:
       containers:
-        - name: my-app
+        - name: spinventory
           image: my-app:latest
           imagePullPolicy: Never
           ports:
@@ -23,15 +54,35 @@ spec:
             limits:
               memory: 512Mi
               cpu: '1'
-
+          env:
+            - name: APP_CONFIG_FILE
+              value: "/config/mysetting.json"
+            - name: APP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: secret-created-by-appconfig-provider
+                  key: <your-secret-key>
+          volumeMounts:
+            - name: config-volume
+              mountPath: /config/mysetting.json
+              subPath: setting.json
+            - name: secret-volume
+              mountPath: /secrets
+      volumes:
+        - name: config-volume
+          configMap:
+            name: spinventory-configmap
+        - name: secret-volume
+          secret:
+            secretName: secret-created-by-appconfig-provider
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: my-app-balancer
+  name: spinventory-balancer
 spec:
   selector:
-    app: my-app
+    app: spinventory
   ports:
     - protocol: TCP
       port: 8000 # The port to expose to the outside

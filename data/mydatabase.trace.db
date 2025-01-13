@@ -1,0 +1,12 @@
+2025-01-07 18:10:07.200123+01:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "APPLICATION_USER" no encontrada
+Table "APPLICATION_USER" not found; SQL statement:
+select u1_0.id,u1_0.hashed_password,u1_0.name,u1_0.profile_picture,u1_0.username,u1_0.version from application_user u1_0 where u1_0.username=? [42102-232]
+2025-01-07 18:10:07.331383+01:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "APPLICATION_USER" no encontrada
+Table "APPLICATION_USER" not found; SQL statement:
+select u1_0.id,u1_0.hashed_password,u1_0.name,u1_0.profile_picture,u1_0.username,u1_0.version from application_user u1_0 where u1_0.username=? [42102-232]
+2025-01-07 18:11:23.485843+01:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "APPLICATION_USER" no encontrada
+Table "APPLICATION_USER" not found; SQL statement:
+select u1_0.id,u1_0.hashed_password,u1_0.name,u1_0.profile_picture,u1_0.username,u1_0.version from application_user u1_0 where u1_0.username=? [42102-232]

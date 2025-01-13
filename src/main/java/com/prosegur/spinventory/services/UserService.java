@@ -3,15 +3,19 @@ package com.prosegur.spinventory.services;
 import com.prosegur.spinventory.data.User;
 import com.prosegur.spinventory.data.UserRepository;
 import java.util.Optional;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Service
 public class UserService {
 
     private final UserRepository repository;
+    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public UserService(UserRepository repository) {
         this.repository = repository;
@@ -39,6 +43,26 @@ public class UserService {
 
     public int count() {
         return (int) repository.count();
+    }
+
+    public List<User> findAll() {
+        return repository.findAll();
+    }
+
+    public User save(User user) {
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            user.setHashedPassword(passwordEncoder.encode(user.getPassword()));
+            user.setPassword(null); // Clear the transient password field after encoding
+        }
+        return repository.save(user);
+    }
+
+    public void delete(User user) {
+        repository.delete(user);
+    }
+
+    public List<User> searchUsers(String searchTerm) {
+        return repository.searchUsers(searchTerm);
     }
 
 }
