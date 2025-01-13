@@ -31,9 +31,10 @@ import org.vaadin.lineawesome.LineAwesomeIconUrl;
 import com.prosegur.spinventory.data.User;
 import com.prosegur.spinventory.data.Role;
 import com.prosegur.spinventory.services.UserService;
+import com.prosegur.spinventory.views.MainLayout;
 
 @PageTitle("User Manager")
-@Route("usermgr")
+@Route(value = "usermgr", layout = MainLayout.class)
 @Menu(order = 3, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
 @PermitAll
 public class UsermgrView extends Composite<VerticalLayout> {

@@ -2,6 +2,7 @@ package com.prosegur.spinventory.views.rbacviews;
 
 import com.prosegur.spinventory.data.ServicePrincipal;
 import com.prosegur.spinventory.services.ServicePrincipalService;
+import com.prosegur.spinventory.views.MainLayout;
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -30,7 +31,7 @@ import com.vaadin.flow.component.datetimepicker.DateTimePicker;
 import java.util.List;
 
 @PageTitle("Spmgr")
-@Route("spmgr")
+@Route(value = "spmgr", layout = MainLayout.class)
 @Menu(order = 1, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
 @RolesAllowed("ADMIN")
 public class SpmgrView extends Composite<VerticalLayout> {

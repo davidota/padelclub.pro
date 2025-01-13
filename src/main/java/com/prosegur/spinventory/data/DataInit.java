@@ -26,7 +26,6 @@ public class DataInit implements InitializingBean {
         Avatar a1 = new Avatar("John Normal");
         Icon Maleicon = VaadinIcon.MALE.create();
         Icon Femaleicon = VaadinIcon.FEMALE.create();
-
         Avatar a2 = new Avatar("Emma Executive");
         // Create admin user 1
         if (!userRepository.existsByUsername("user")) {
