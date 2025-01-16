@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.padellevel.data.Role;
 import com.padellevel.data.User;
-import com.padellevel.data.UserRepository;
+import com.padellevel.repository.UserRepository;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;

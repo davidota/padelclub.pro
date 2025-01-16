@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.padellevel.data.User;
-import com.padellevel.data.UserRepository;
+import com.padellevel.repository.UserRepository;
 
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {

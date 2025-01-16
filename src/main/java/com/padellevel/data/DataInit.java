@@ -5,6 +5,8 @@ import net.datafaker.Faker;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+
+import com.padellevel.repository.UserRepository;
 import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -88,5 +90,20 @@ public class DataInit implements InitializingBean {
             player.setRoles(new HashSet<>(Arrays.asList(Role.PLAYER)));
             userRepository.save(player);
         }
+
+        // Example initialization of Torneo (if applicable)
+        /*
+        if (!torneoRepository.existsByNombre("Torneo Ejemplo")) {
+            Torneo torneo = new Torneo();
+            torneo.setNombre("Torneo Ejemplo");
+            torneo.setTipo(TipoTorneo.ROUND_ROBIN);
+            torneo.setNumeroEnfrentamientos(3);
+            torneo.setJuegosPorEnfrentamiento(2);
+            torneo.setNumeroEnfrentamientosSimultaneos(1);
+            torneo.setNumeroDeVueltas(2); // Set numeroDeVueltas
+            torneo.setJugadores(new ArrayList<>(userRepository.findAll()));
+            torneoRepository.save(torneo);
+        }
+        */
     }
 }

@@ -1,7 +1,7 @@
 package com.padellevel.views.rbacviews;
 
 import com.padellevel.data.Torneo;
-import com.padellevel.data.Role;
+import com.padellevel.data.Enfrentamiento;
 import com.padellevel.data.TipoTorneo;
 import com.padellevel.data.User;
 import com.padellevel.services.TorneoService;
@@ -9,15 +9,12 @@ import com.padellevel.services.UserService;
 import com.padellevel.views.MainLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
-import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.tabs.Tab;
-import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Menu;
@@ -25,6 +22,13 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.vaadin.lineawesome.LineAwesomeIconUrl;
 import jakarta.annotation.security.RolesAllowed;
+import net.datafaker.Faker;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.data.binder.Binder;
+import com.vaadin.flow.data.binder.ValidationException;
+import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.textfield.IntegerField;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +41,6 @@ public class ConfigurarTorneoView extends VerticalLayout {
     private Grid<Torneo> torneoGrid;
     private Button nuevoTorneoBtn;
     private Button borrarTorneosBtn;
-    private Dialog nuevoTorneoDialog;
     private TextField nombreField;
     private ComboBox<TipoTorneo> tipoComboBox;
     private NumberField numeroEnfrentamientosField;
@@ -45,7 +48,12 @@ public class ConfigurarTorneoView extends VerticalLayout {
     private Grid<User> participantesGrid;
     private TorneoService torneoService;
     private UserService userService;
-    private List<User> allParticipantes;
+    private Torneo torneoEditado;
+    private Grid<Enfrentamiento> enfrentamientosGrid;
+    private NumberField numeroEnfrentamientosSimultaneosField;
+    private IntegerField numeroDeVueltasField; // Changed from NumberField
+    private Binder<Torneo> binder = new Binder<>(Torneo.class);
+    private Dialog editDialog;
 
     public ConfigurarTorneoView(TorneoService torneoService, UserService userService) {
         this.torneoService = torneoService;
@@ -53,7 +61,7 @@ public class ConfigurarTorneoView extends VerticalLayout {
 
         // Configurar el Grid de Torneos
         torneoGrid = new Grid<>(Torneo.class);
-        torneoGrid.setColumns("nombre", "tipo", "numeroEnfrentamientos", "juegosPorEnfrentamiento");
+        torneoGrid.setColumns("nombre", "tipo", "numeroEnfrentamientos", "juegosPorEnfrentamiento", "numeroDeVueltas"); // Added 'numeroDeVueltas'
         torneoGrid.setSelectionMode(Grid.SelectionMode.MULTI);
         torneoGrid.setItems(torneoService.findAll());
 
@@ -78,8 +86,8 @@ public class ConfigurarTorneoView extends VerticalLayout {
         HorizontalLayout buttonsLayout = new HorizontalLayout();
         buttonsLayout.setSpacing(true);
 
-        nuevoTorneoBtn = new Button("Nuevo Torneo", e -> nuevoTorneoDialog.open());
-        borrarTorneosBtn = new Button("Borrar Torneos", ev -> borrarTorneos());
+        nuevoTorneoBtn = new Button("Nuevo Torneo", e -> openEditDialog(new Torneo()));
+        borrarTorneosBtn = new Button("Borrar Torneos", ev -> deleteSelectedTorneos());
         buttonsLayout.add(nuevoTorneoBtn, borrarTorneosBtn);
 
         searchAndButtonsLayout.add(buttonsLayout);
@@ -87,100 +95,16 @@ public class ConfigurarTorneoView extends VerticalLayout {
 
         add(torneoGrid);
 
-        // Configurar el diálogo para crear o editar un nuevo torneo
-        configurarNuevoTorneoDialog();
-
-        // Configurar Tabs (si es necesario)
-        configurarTabs();
+        // Initialize Edit Dialog
+        initEditDialog();
     }
 
-    private void configurarNuevoTorneoDialog() {
-        nuevoTorneoDialog = new Dialog();
-        nuevoTorneoDialog.setWidth("800px");
-
-        VerticalLayout dialogLayout = new VerticalLayout();
-        dialogLayout.setPadding(true);
-        dialogLayout.setSpacing(true);
-
-        // Layout principal en el diálogo
-        HorizontalLayout formLayout = new HorizontalLayout();
-        formLayout.setWidthFull();
-        formLayout.setSpacing(true);
-
-        // Panel izquierdo con los campos del torneo
-        VerticalLayout camposLayout = new VerticalLayout();
-        camposLayout.setWidth("40%");
-        camposLayout.setSpacing(true);
-
-        // Campo Nombre del Torneo
-        nombreField = new TextField("Nombre del Torneo");
-        nombreField.setRequired(true);
-        camposLayout.add(nombreField);
-
-        // ComboBox Tipo de Torneo
-        tipoComboBox = new ComboBox<>("Tipo de Torneo");
-        tipoComboBox.setItems(TipoTorneo.values());
-        tipoComboBox.setItemLabelGenerator(this::getTipoTorneoLabel);
-        tipoComboBox.setPlaceholder("Selecciona el tipo de torneo");
-        tipoComboBox.setRequired(true);
-        camposLayout.add(tipoComboBox);
-
-        // NumberField Número de Enfrentamientos por Torneo
-        numeroEnfrentamientosField = new NumberField("Número de Enfrentamientos por Torneo");
-        numeroEnfrentamientosField.setMin(1);
-        numeroEnfrentamientosField.setValue(1.0);
-        numeroEnfrentamientosField.setRequired(true);
-        camposLayout.add(numeroEnfrentamientosField);
-
-        // NumberField Número de Juegos por Enfrentamiento
-        juegosPorEnfrentamientoField = new NumberField("Número de Juegos por Enfrentamiento");
-        juegosPorEnfrentamientoField.setMin(1);
-        juegosPorEnfrentamientoField.setValue(1.0);
-        juegosPorEnfrentamientoField.setRequired(true);
-        camposLayout.add(juegosPorEnfrentamientoField);
-
-        formLayout.add(camposLayout);
-
-        // Panel derecho con el Grid de participantes
-        VerticalLayout participantesLayout = new VerticalLayout();
-        participantesLayout.setWidth("60%");
-        participantesLayout.setSpacing(true);
-
-        participantesLayout.add(new Span("Selecciona los participantes:"));
-
-        participantesGrid = new Grid<>(User.class);
-        participantesGrid.setColumns("username", "name", "apellido");
-        participantesGrid.setSelectionMode(Grid.SelectionMode.MULTI);
-        participantesGrid.setWidthFull();
-        participantesGrid.setHeight("300px");
-
-        try {
-            allParticipantes = userService.findByRole(Role.PLAYER);
-            participantesGrid.setItems(allParticipantes);
-        } catch (Exception e) {
-            // Manejo de excepciones al obtener participantes
-            System.err.println("Error al obtener participantes: " + e.getMessage());
-            e.printStackTrace();
-            participantesGrid.setItems(new ArrayList<>()); // Lista vacía en caso de error
-        }
-
-        participantesLayout.add(participantesGrid);
-        formLayout.add(participantesLayout);
-
-        dialogLayout.add(formLayout);
-
-        // Botones Guardar y Cancelar
-        HorizontalLayout botonesLayout = new HorizontalLayout();
-        botonesLayout.setWidthFull();
-        botonesLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
-        botonesLayout.setSpacing(true);
-
-        Button guardarBtn = new Button("Guardar", e -> guardarNuevoTorneo());
-        Button cancelarBtn = new Button("Cancelar", e -> nuevoTorneoDialog.close());
-        botonesLayout.add(guardarBtn, cancelarBtn);
-
-        dialogLayout.add(botonesLayout);
-        nuevoTorneoDialog.add(dialogLayout);
+    private void openEditDialog(Torneo torneo) {
+        torneoEditado = torneo;
+        binder.readBean(torneoEditado);
+        participantesGrid.deselectAll();
+        torneoEditado.getJugadores().forEach(participantesGrid::select);
+        editDialog.open();
     }
 
     private String getTipoTorneoLabel(TipoTorneo tipo) {
@@ -199,17 +123,20 @@ public class ConfigurarTorneoView extends VerticalLayout {
     private void guardarNuevoTorneo() {
         // Validar campos requeridos
         if (nombreField.isEmpty() || tipoComboBox.isEmpty() ||
-            numeroEnfrentamientosField.isEmpty() || juegosPorEnfrentamientoField.isEmpty()) {
+                numeroEnfrentamientosField.isEmpty() || juegosPorEnfrentamientoField.isEmpty() ||
+                numeroDeVueltasField.isEmpty()) { // Added validation
             Notification.show("Por favor, completa todos los campos requeridos.", 3000, Notification.Position.MIDDLE);
             return;
         }
 
         // Crear o actualizar Torneo
-        Torneo nuevoTorneo = nuevoTorneoDialog.getElement().getProperty("isEdit", false) ? obtenerTorneoEditado() : new Torneo();
+        Torneo nuevoTorneo = obtenerTorneoEditado() != null ? obtenerTorneoEditado() : new Torneo();
         nuevoTorneo.setNombre(nombreField.getValue());
         nuevoTorneo.setTipo(tipoComboBox.getValue());
         nuevoTorneo.setNumeroEnfrentamientos(numeroEnfrentamientosField.getValue().intValue());
         nuevoTorneo.setJuegosPorEnfrentamiento(juegosPorEnfrentamientoField.getValue().intValue());
+        nuevoTorneo.setNumeroEnfrentamientosSimultaneos(numeroEnfrentamientosSimultaneosField.getValue().intValue());
+        nuevoTorneo.setNumeroDeVueltas(numeroDeVueltasField.getValue()); // Set new field
 
         // Obtener participantes seleccionados
         List<User> seleccionados = participantesGrid.getSelectedItems().stream().toList();
@@ -218,21 +145,22 @@ public class ConfigurarTorneoView extends VerticalLayout {
         // Guardar Torneo
         try {
             torneoService.save(nuevoTorneo);
-            nuevoTorneoDialog.close();
             actualizarListaTorneos();
             Notification.show("Torneo guardado exitosamente.", 3000, Notification.Position.MIDDLE);
+
+            // Reset the edit tracking field
+            torneoEditado = null;
         } catch (Exception e) {
             // Manejo de excepciones al guardar torneo
             System.err.println("Error al guardar torneo: " + e.getMessage());
             e.printStackTrace();
-            Notification.show("Error al guardar el torneo. Por favor, intenta nuevamente.", 5000, Notification.Position.MIDDLE);
+            Notification.show("Error al guardar el torneo. Por favor, intenta nuevamente.", 5000,
+                    Notification.Position.MIDDLE);
         }
     }
 
     private Torneo obtenerTorneoEditado() {
-        // Implementa la lógica para obtener el torneo actualmente editado si es necesario
-        // Esto puede requerir mantener una referencia al torneo en edición
-        return new Torneo();
+        return torneoEditado;
     }
 
     private void actualizarListaTorneos() {
@@ -242,14 +170,13 @@ public class ConfigurarTorneoView extends VerticalLayout {
             // Manejo de excepciones al actualizar lista
             System.err.println("Error al actualizar lista de torneos: " + e.getMessage());
             e.printStackTrace();
-            torneoGrid.setItems(new ArrayList<>()); // Lista vacía en caso de error
+            torneoGrid.setItems(new ArrayList<>());
         }
     }
 
-    private void borrarTorneos() {
+    private void deleteSelectedTorneos() {
         List<Torneo> seleccionados = torneoGrid.getSelectedItems().stream().toList();
         if (seleccionados.isEmpty()) {
-            // Mostrar mensaje de que no se seleccionó ningún torneo
             Notification.show("No se ha seleccionado ningún torneo para borrar.", 3000, Notification.Position.MIDDLE);
             return;
         }
@@ -259,10 +186,10 @@ public class ConfigurarTorneoView extends VerticalLayout {
             actualizarListaTorneos();
             Notification.show("Torneos borrados exitosamente.", 3000, Notification.Position.MIDDLE);
         } catch (Exception e) {
-            // Manejo de excepciones al borrar torneos
             System.err.println("Error al borrar torneos: " + e.getMessage());
             e.printStackTrace();
-            Notification.show("Error al borrar los torneos. Por favor, intenta nuevamente.", 5000, Notification.Position.MIDDLE);
+            Notification.show("Error al borrar los torneos. Por favor, intenta nuevamente.", 5000,
+                    Notification.Position.MIDDLE);
         }
     }
 
@@ -275,61 +202,167 @@ public class ConfigurarTorneoView extends VerticalLayout {
         }
     }
 
-    private void configurarTabs() {
-        Tabs tabs = new Tabs();
-        Tab ganadorTab = new Tab("Ganador");
-        Tab clasificacionTab = new Tab("Clasificación");
-        Tab enfrentamientosTab = new Tab("Enfrentamientos");
-
-        tabs.add(ganadorTab, clasificacionTab, enfrentamientosTab);
-        add(tabs);
-
-        VerticalLayout ganadorLayout = new VerticalLayout();
-        ganadorLayout.setWidthFull();
-        ganadorLayout.add(new Span("Configuración de Ganador"));
-
-        VerticalLayout clasificacionLayout = new VerticalLayout();
-        clasificacionLayout.setWidthFull();
-        clasificacionLayout.add(new Span("Configuración de Clasificación"));
-
-        VerticalLayout enfrentamientosLayout = new VerticalLayout();
-        enfrentamientosLayout.setWidthFull();
-        enfrentamientosLayout.add(new Span("Configuración de Enfrentamientos"));
-
-        tabs.addSelectedChangeListener(event -> {
-            // Remover todos los componentes excepto las tabs
-            removeAll();
-            add(tabs);
-            // Agregar el layout correspondiente al tab seleccionado
-            if (event.getSelectedTab().equals(ganadorTab)) {
-                add(ganadorLayout);
-            } else if (event.getSelectedTab().equals(clasificacionTab)) {
-                add(clasificacionLayout);
-            } else if (event.getSelectedTab().equals(enfrentamientosTab)) {
-                add(enfrentamientosLayout);
-            }
-        });
-
-        // Inicialmente mostrar el primer tab
-        add(ganadorLayout);
-    }
-
     private void editarTorneo(Torneo torneo) {
-        // Obtener el torneo con la colección 'jugadores' inicializada
-        Torneo torneoConJugadores = torneoService.findByIdWithJugadores(torneo.getId());
-        if (torneoConJugadores == null) {
+        torneoEditado = torneoService.findByIdWithJugadores(torneo.getId());
+        if (torneoEditado == null) {
             Notification.show("Torneo no encontrado.", 3000, Notification.Position.MIDDLE);
             return;
         }
 
-        nombreField.setValue(torneoConJugadores.getNombre());
-        tipoComboBox.setValue(torneoConJugadores.getTipo());
-        numeroEnfrentamientosField.setValue((double) torneoConJugadores.getNumeroEnfrentamientos());
-        juegosPorEnfrentamientoField.setValue((double) torneoConJugadores.getJuegosPorEnfrentamiento());
+        binder.readBean(torneoEditado);
+
+        // Select the jugadores in the grid
         participantesGrid.deselectAll();
-        torneoConJugadores.getJugadores().forEach(participantesGrid::select);
-        nuevoTorneoDialog.open();
-        // Marcar el diálogo como edición
-        nuevoTorneoDialog.getElement().setProperty("isEdit", true);
+        torneoEditado.getJugadores().forEach(participantesGrid::select);
+
+        // Open the edit dialog
+        editDialog.open();
+    }
+
+    private void initEditDialog() {
+        editDialog = new Dialog();
+        FormLayout formLayout = new FormLayout();
+
+        nombreField = new TextField("Nombre del Torneo");
+        tipoComboBox = new ComboBox<>("Tipo de Torneo");
+        tipoComboBox.setItems(TipoTorneo.values());
+        tipoComboBox.setItemLabelGenerator(TipoTorneo::name);
+
+        numeroEnfrentamientosField = new NumberField("Número de Enfrentamientos");
+        numeroEnfrentamientosField.setMin(1);
+        juegosPorEnfrentamientoField = new NumberField("Juegos por Enfrentamiento");
+        juegosPorEnfrentamientoField.setMin(1);
+        numeroEnfrentamientosSimultaneosField = new NumberField("Número de Enfrentamientos Simultáneos");
+        numeroEnfrentamientosSimultaneosField.setMin(1);
+        
+        numeroDeVueltasField = new IntegerField("Número de Vueltas"); // Changed to IntegerField
+        numeroDeVueltasField.setMin(1);
+
+        participantesGrid = new Grid<>(User.class);
+        participantesGrid.setItems(userService.findAll());
+        participantesGrid.removeAllColumns();
+        participantesGrid.addColumn(User::getName).setHeader("Nombre");
+        participantesGrid.addColumn(User::getApellido).setHeader("Apellido");
+        participantesGrid.setSelectionMode(Grid.SelectionMode.MULTI);
+        participantesGrid.setHeight("200px");
+
+        binder.bind(nombreField, Torneo::getNombre, Torneo::setNombre);
+        binder.bind(tipoComboBox, Torneo::getTipo, Torneo::setTipo);
+        binder.bind(numeroEnfrentamientosField,
+                torneo -> (double) torneo.getNumeroEnfrentamientos(),
+                (torneo, value) -> torneo.setNumeroEnfrentamientos(value.intValue()));
+
+        binder.bind(juegosPorEnfrentamientoField,
+                torneo -> (double) torneo.getJuegosPorEnfrentamiento(),
+                (torneo, value) -> torneo.setJuegosPorEnfrentamiento(value.intValue()));
+        binder.bind(numeroEnfrentamientosSimultaneosField,
+                torneo -> (double)torneo.getNumeroEnfrentamientosSimultaneos(),
+                (torneo, value) -> torneo.setNumeroEnfrentamientosSimultaneos(value.intValue()));
+        binder.bind(numeroDeVueltasField,
+                Torneo::getNumeroDeVueltas,
+                Torneo::setNumeroDeVueltas); // Updated binding to use IntegerField
+
+        binder.addStatusChangeListener(e -> {
+            // Enable save button only when the form is valid
+            // saveButton.setEnabled(binder.isValid());
+        });
+
+        Button guardarBtn = new Button("Guardar", event -> {
+            try {
+                binder.writeBean(torneoEditado);
+                torneoEditado.setJugadores(participantesGrid.getSelectedItems().stream().toList());
+                torneoService.save(torneoEditado);
+                torneoGrid.setItems(torneoService.findAll());
+                Notification.show("Torneo actualizado exitosamente.", 3000, Notification.Position.MIDDLE)
+                        .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                editDialog.close();
+            } catch (ValidationException | RuntimeException ex) {
+                Notification.show("Error al actualizar el torneo.", 3000, Notification.Position.MIDDLE)
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                ex.printStackTrace();
+            }
+        });
+
+        Button cancelarBtn = new Button("Cancelar", event -> editDialog.close());
+
+        HorizontalLayout botonesDialogo = new HorizontalLayout(guardarBtn, cancelarBtn);
+        formLayout.add(nombreField, tipoComboBox, numeroEnfrentamientosField,
+                juegosPorEnfrentamientoField, numeroEnfrentamientosSimultaneosField,
+                numeroDeVueltasField, participantesGrid, botonesDialogo);
+        editDialog.add(formLayout);
+    }
+
+    private void generarTorneo() {
+        List<User> seleccionados = participantesGrid.getSelectedItems().stream().toList();
+
+        if (seleccionados.size() % 2 != 0) {
+            Notification.show("El número de participantes debe ser par.", 3000, Notification.Position.MIDDLE);
+            return;
+        }
+
+        int participantesTotal = seleccionados.size();
+
+        // Parámetro capturado: cantidad de partidos que pueden producirse
+        // simultáneamente
+        int partidosSimultaneos = numeroEnfrentamientosField.getValue().intValue();
+
+        // Lógica para generar enfrentamientos
+        // ...
+
+        Notification.show("Torneo generado exitosamente.", 3000, Notification.Position.MIDDLE);
+    }
+
+    private void actualizarEnfrentamientosTab(List<Enfrentamiento> enfrentamientos) {
+        enfrentamientosGrid.setItems(enfrentamientos);
+    }
+
+    private void mostrarEnfrentamientosAgrupados(List<Enfrentamiento> enfrentamientos, int juegosPorEnfrentamiento) {
+        removeAll(); // Clear or replace with a container if you'd like to keep existing layout
+        VerticalLayout mainLayout = new VerticalLayout();
+        mainLayout.setWidthFull();
+
+        Faker faker = new Faker();
+
+        // Group confrontations in rows of 2 pairs
+        for (int i = 0; i < enfrentamientos.size(); i += 2) {
+            HorizontalLayout rowLayout = new HorizontalLayout();
+            rowLayout.setWidthFull();
+            rowLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+
+            if (i < enfrentamientos.size()) {
+                Enfrentamiento e1 = enfrentamientos.get(i);
+                String leftTeamName = faker.team().name();
+                e1.setEquipoGanador(""); // Initialize if needed
+
+                VerticalLayout leftTeamLayout = new VerticalLayout();
+                leftTeamLayout.add(new Span("Equipo Izquierdo: " + leftTeamName));
+                rowLayout.add(leftTeamLayout);
+
+                // Create ComboBoxes for each game
+                HorizontalLayout gamesLayout = new HorizontalLayout();
+                for (int j = 0; j < juegosPorEnfrentamiento; j++) {
+                    ComboBox<String> combo = new ComboBox<>();
+                    combo.setItems("", "empate", leftTeamName, "");
+                    combo.setValue("");
+                    gamesLayout.add(combo);
+                }
+                rowLayout.add(gamesLayout);
+            }
+
+            // Right pair
+            if (i + 1 < enfrentamientos.size()) {
+                Enfrentamiento e2 = enfrentamientos.get(i + 1);
+                String rightTeamName = faker.team().name();
+                e2.setEquipoGanador(""); // Initialize if needed
+
+                VerticalLayout rightTeamLayout = new VerticalLayout();
+                rightTeamLayout.add(new Span("Equipo Derecho: " + rightTeamName));
+                rowLayout.add(rightTeamLayout);
+            }
+
+            mainLayout.add(rowLayout);
+        }
+
+        add(mainLayout);
     }
 }

@@ -1,7 +1,7 @@
 package com.padellevel.security;
 
 import com.padellevel.data.User;
-import com.padellevel.data.UserRepository;
+import com.padellevel.repository.UserRepository;
 import com.vaadin.flow.spring.security.AuthenticationContext;
 import java.util.Optional;
 import org.springframework.security.core.userdetails.UserDetails;

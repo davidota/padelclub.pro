@@ -17,9 +17,21 @@ public class Torneo {
     @ManyToMany
     private List<User> jugadores = new ArrayList<>();
 
+    private String nombre;
+
     private int numeroEnfrentamientos;
     private int juegosPorEnfrentamiento;
-    private String nombre;
+
+    private int numeroEnfrentamientosSimultaneos = 1; // Updated default value
+
+    @Enumerated(EnumType.STRING)
+    private EstadoTorneo estado = EstadoTorneo.ABIERTO; // New field
+
+    private int numeroDeVueltas; // Changed from Integer
+
+    // Remove the duplicate @ManyToMany annotation if present
+    @OneToMany(mappedBy = "torneo", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Enfrentamiento> enfrentamientos = new ArrayList<>();
 
     // Getters y Setters
     public Long getId() {
@@ -62,11 +74,43 @@ public class Torneo {
         this.juegosPorEnfrentamiento = juegosPorEnfrentamiento;
     }
 
+    public int getNumeroEnfrentamientosSimultaneos() {
+        return numeroEnfrentamientosSimultaneos;
+    }
+
+    public void setNumeroEnfrentamientosSimultaneos(int numeroEnfrentamientosSimultaneos) {
+        this.numeroEnfrentamientosSimultaneos = numeroEnfrentamientosSimultaneos;
+    }
+
+    public EstadoTorneo getEstado() {
+        return estado;
+    }
+
+    public void setEstado(EstadoTorneo estado) {
+        this.estado = estado;
+    }
+
     public String getNombre() {
         return nombre;
     }
 
     public void setNombre(String nombre) {
         this.nombre = nombre;
+    }
+
+    public int getNumeroDeVueltas() {
+        return numeroDeVueltas;
+    }
+
+    public void setNumeroDeVueltas(int numeroDeVueltas) {
+        this.numeroDeVueltas = numeroDeVueltas;
+    }
+
+    public List<Enfrentamiento> getEnfrentamientos() {
+        return enfrentamientos;
+    }
+
+    public void setEnfrentamientos(List<Enfrentamiento> enfrentamientos) {
+        this.enfrentamientos = enfrentamientos;
     }
 }
