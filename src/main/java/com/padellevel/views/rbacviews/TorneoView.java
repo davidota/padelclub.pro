@@ -37,6 +37,8 @@ import com.vaadin.flow.data.converter.StringToIntegerConverter;
 import com.vaadin.flow.data.converter.StringToDoubleConverter;
 
 import org.springframework.transaction.annotation.Transactional;
+import com.padellevel.services.EnfrentamientoService;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @PageTitle("Padel Level")
 @Route(value = "torneo", layout = MainLayout.class)
@@ -45,6 +47,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class TorneoView extends VerticalLayout {
 
     private final TorneoService torneoService;
+    private final EnfrentamientoService enfrentamientoService; // Added
     private Tab configuracionTab, enfrentamientosTab, clasificacionTab, ganadorTab;
     private Div configuracionContent, enfrentamientosContent, clasificacionContent, ganadorContent;
 
@@ -59,8 +62,10 @@ public class TorneoView extends VerticalLayout {
     private Torneo torneoEditado; // Declared torneoEditado
 
 
-    public TorneoView(TorneoService torneoService) {
+    @Autowired
+    public TorneoView(TorneoService torneoService, EnfrentamientoService enfrentamientoService) { // Modified
         this.torneoService = torneoService;
+        this.enfrentamientoService = enfrentamientoService; // Added
         crearTabs();
         prepararConfiguracionTab();
     }
@@ -138,7 +143,7 @@ public class TorneoView extends VerticalLayout {
                     return;
                 }
                 binder.writeBean(torneo); // Removed writeBeanIfValid
-                torneoService.save(torneo);
+                torneoService.actualizarTorneo(torneo); // Modified to use service
                 Notification.show("Torneo guardado exitosamente.", 3000, Notification.Position.MIDDLE);
                 torneoCombo.setItems(torneoService.findAll()); // Refresh ComboBox items
             } catch (ValidationException ex) {
@@ -154,40 +159,22 @@ public class TorneoView extends VerticalLayout {
                 return;
             }
 
-            // Validar que el torneo no haya sido generado previamente, si es necesario
-            // ...
+            try {
+                List<Enfrentamiento> enfrentamientos = torneoService.generarEnfrentamientos(selectedTorneo);
+                Notification.show("Torneo generado exitosamente.", 3000, Notification.Position.MIDDLE)
+                           .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
 
-            // Generar equipos aleatoriamente
-            List<Equipo> equipos = generarEquipos(selectedTorneo.getJugadores());
+                // Seleccionar el tab de Enfrentamientos
+                Tabs tabs = getTabs();
+                Tab enfTab = enfrentamientosTab;
+                tabs.setSelectedTab(enfTab);
 
-            // Verificar que hay suficientes equipos para generar enfrentamientos
-            if (equipos.size() < 2) {
-                Notification.show("No hay suficientes equipos para generar enfrentamientos.", 3000, Notification.Position.MIDDLE)
+                // Mostrar los enfrentamientos en el contenido correspondiente
+                mostrarEnfrentamientos(enfrentamientos, selectedTorneo.getJuegosPorEnfrentamiento());
+            } catch (IllegalArgumentException e) {
+                Notification.show(e.getMessage(), 3000, Notification.Position.MIDDLE)
                            .addThemeVariants(NotificationVariant.LUMO_ERROR);
-                return;
             }
-
-            // Calcular el número total de enfrentamientos por equipo
-            int totalEnfrentamientosPorEquipo = selectedTorneo.getJuegosPorEnfrentamiento() * selectedTorneo.getNumeroDeVueltas();
-
-            // Generar enfrentamientos respetando las restricciones
-            List<Enfrentamiento> enfrentamientos = generarEnfrentamientosConRestricciones(equipos, totalEnfrentamientosPorEquipo);
-
-            // Guardar los enfrentamientos en el torneo si es necesario
-            // selectedTorneo.setEnfrentamientos(enfrentamientos);
-            // torneoService.save(selectedTorneo);
-
-            // Mostrar notificación de éxito
-            Notification.show("Torneo creado correctamente.", 3000, Notification.Position.MIDDLE)
-                       .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-
-            // Seleccionar el tab de Enfrentamientos
-            Tabs tabs = getTabs(); // Implementa un método para obtener el objeto Tabs
-            Tab enfTab = enfrentamientosTab; // Asegúrate de que enfrentamientosTab está correctamente referenciado
-            tabs.setSelectedTab(enfTab);
-
-            // Mostrar los enfrentamientos en el contenido correspondiente
-            mostrarEnfrentamientos(enfrentamientos, totalEnfrentamientosPorEquipo);
         });
 
         // Disponer elementos en layouts
@@ -253,70 +240,6 @@ public class TorneoView extends VerticalLayout {
         enfrentamientosContent.add(mainLayout);
     }
 
-    @Transactional
-    private List<Equipo> generarEquipos(List<User> jugadores) {
-        List<Equipo> equipos = new ArrayList<>();
-        List<User> barajados = new ArrayList<>(jugadores);
-        Collections.shuffle(barajados);
-
-        for (int i = 0; i < barajados.size(); i += 2) {
-            if (i + 1 < barajados.size()) {
-                Equipo e = new Equipo();
-                e.setParticipante1(barajados.get(i));
-                e.setParticipante2(barajados.get(i + 1));
-                equipos.add(e);
-            }
-        }
-        return equipos;
-    }
-
-    private List<Enfrentamiento> generarEnfrentamientos(List<User> participantes, int partidosSimultaneos) {
-        List<Enfrentamiento> enfrentamientos = new ArrayList<>();
-        List<Equipo> equipos = generarEquipos(participantes); // Change to generate equipos instead of users
-        Collections.shuffle(equipos);
-
-        for (int i = 0; i < equipos.size(); i += 2) {
-            if (i + 1 < equipos.size()) {
-                Enfrentamiento e = new Enfrentamiento();
-                e.setEquipo1(equipos.get(i));
-                e.setEquipo2(equipos.get(i + 1));
-                // Inicializar resultado con valor vacío o un valor por defecto válido
-                e.setEquipoGanador(""); // Puede ser actualizado posteriormente en la UI
-                enfrentamientos.add(e);
-            }
-        }
-
-        return enfrentamientos;
-    }
-
-    private List<Enfrentamiento> generarEnfrentamientosConRestricciones(List<Equipo> equipos, int totalEnfrentamientosPorEquipo) {
-        List<Enfrentamiento> enfrentamientos = new ArrayList<>();
-        int numEquipos = equipos.size();
-
-        // Crear una matriz para contar enfrentamientos entre equipos
-        int[][] matrizEnfrentamientos = new int[numEquipos][numEquipos];
-
-        // Generar enfrentamientos asegurando que no se enfrenten a sí mismos y respetando el número de enfrentamientos por equipo
-        for (int ronda = 0; ronda < totalEnfrentamientosPorEquipo; ronda++) {
-            for (int i = 0; i < numEquipos; i++) {
-                for (int j = i + 1; j < numEquipos; j++) {
-                    if (matrizEnfrentamientos[i][j] < totalEnfrentamientosPorEquipo &&
-                        matrizEnfrentamientos[j][i] < totalEnfrentamientosPorEquipo) {
-                        Enfrentamiento e = new Enfrentamiento();
-                        e.setEquipo1(equipos.get(i));
-                        e.setEquipo2(equipos.get(j));
-                        e.setEquipoGanador(""); // Initialize as needed
-                        enfrentamientos.add(e);
-                        matrizEnfrentamientos[i][j]++;
-                        matrizEnfrentamientos[j][i]++;
-                    }
-                }
-            }
-        }
-
-        return enfrentamientos;
-    }
-
     private void mostrarEnfrentamientosAgrupados(List<Enfrentamiento> enfrentamientos, int juegosPorEnfrentamiento) {
         enfrentamientosContent.removeAll(); // Clear existing content
         VerticalLayout mainLayout = new VerticalLayout();
@@ -361,4 +284,3 @@ public class TorneoView extends VerticalLayout {
         enfrentamientosContent.add(mainLayout);
     }
 }
-

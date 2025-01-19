@@ -7,15 +7,16 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.stereotype.Repository;
 
 import com.padellevel.data.Torneo;
 
+@Repository
 public interface TorneoRepository extends JpaRepository<Torneo, Long>, JpaSpecificationExecutor<Torneo> {
 
     @EntityGraph(attributePaths = "jugadores")
     List<Torneo> findAll();
 
- 
 
     @Query("SELECT t FROM Torneo t WHERE " +
             "LOWER(t.nombre) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
@@ -36,4 +37,5 @@ public interface TorneoRepository extends JpaRepository<Torneo, Long>, JpaSpecif
     @Query("SELECT t FROM Torneo t JOIN FETCH t.jugadores WHERE t.id = :id")
     Torneo findWithJugadoresById(Long id);
     
+    // ...remove any redundant queries if present...
 }
