@@ -71,7 +71,7 @@ public class EnfrentamientoService {
                         Enfrentamiento e = new Enfrentamiento();
                         e.setEquipo1(equipos.get(i));
                         e.setEquipo2(equipos.get(j));
-                        e.setEquipoGanador(""); // Initialize as needed
+                        e.setResultado(""); // Initialize as needed
                         enfrentamientos.add(e);
                         matrizEnfrentamientos[i][j]++;
                         matrizEnfrentamientos[j][i]++;

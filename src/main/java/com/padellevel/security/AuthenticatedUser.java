@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class AuthenticatedUser {
 
-    private final UserRepository userRepository;
+    private final UserRepository userRepository; 
     private final AuthenticationContext authenticationContext;
 
     public AuthenticatedUser(AuthenticationContext authenticationContext, UserRepository userRepository) {

@@ -10,10 +10,12 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.internal.RouteUtil;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
+import com.vaadin.flow.component.dependency.CssImport;
 
 @AnonymousAllowed
-@PageTitle("Login")
-@Route(value = "login")
+@PageTitle("PadelClub.pro")
+@Route(value = "login2")
+@CssImport("./styles/login-view.css")
 public class LoginView extends LoginOverlay implements BeforeEnterObserver {
 
     private final AuthenticatedUser authenticatedUser;
@@ -24,13 +26,17 @@ public class LoginView extends LoginOverlay implements BeforeEnterObserver {
 
         LoginI18n i18n = LoginI18n.createDefault();
         i18n.setHeader(new LoginI18n.Header());
-        i18n.getHeader().setTitle("spinventory");
-        i18n.getHeader().setDescription("Login using user/user or admin/admin");
+        i18n.getHeader().setTitle("Padelclub.pro");
+        i18n.getHeader().setDescription("The place for the best");
         i18n.setAdditionalInformation(null);
         setI18n(i18n);
 
         setForgotPasswordButtonVisible(false);
         setOpened(true);
+
+        // Apply the background style
+        getElement().getStyle().set("background-image", "url('images/padel-background.jpg')");
+        getElement().getStyle().set("background-size", "cover");
     }
 
     @Override

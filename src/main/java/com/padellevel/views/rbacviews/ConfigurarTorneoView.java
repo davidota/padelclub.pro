@@ -29,6 +29,8 @@ import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
+import com.vaadin.flow.router.RouteParameters;
+import com.vaadin.flow.router.RouterLink;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,6 +66,17 @@ public class ConfigurarTorneoView extends VerticalLayout {
         torneoGrid.setColumns("nombre", "tipo", "numeroEnfrentamientos", "juegosPorEnfrentamiento", "numeroDeVueltas"); // Added 'numeroDeVueltas'
         torneoGrid.setSelectionMode(Grid.SelectionMode.MULTI);
         torneoGrid.setItems(torneoService.findAll());
+
+        // Add new column with "Ver Pozos" button for each torneo
+        torneoGrid.addComponentColumn(torneo -> {
+            Button verPozosBtn = new Button("Ver Pozos", event -> {
+                // Navigate to "torneo" with query parameter "torneoId"
+                getUI().ifPresent(ui -> ui.navigate("torneo", 
+                    com.vaadin.flow.router.QueryParameters.simple(java.util.Map.of("torneoId", torneo.getId().toString()))
+                ));
+            });
+            return verPozosBtn;
+        }).setHeader("Acciones");
 
         // Agregar listener para doble clic en el grid de torneos
         torneoGrid.addItemDoubleClickListener(event -> {
@@ -332,7 +345,7 @@ public class ConfigurarTorneoView extends VerticalLayout {
             if (i < enfrentamientos.size()) {
                 Enfrentamiento e1 = enfrentamientos.get(i);
                 String leftTeamName = faker.team().name();
-                e1.setEquipoGanador(""); // Initialize if needed
+                e1.setResultado(""); // Initialize if needed
 
                 VerticalLayout leftTeamLayout = new VerticalLayout();
                 leftTeamLayout.add(new Span("Equipo Izquierdo: " + leftTeamName));
@@ -353,7 +366,7 @@ public class ConfigurarTorneoView extends VerticalLayout {
             if (i + 1 < enfrentamientos.size()) {
                 Enfrentamiento e2 = enfrentamientos.get(i + 1);
                 String rightTeamName = faker.team().name();
-                e2.setEquipoGanador(""); // Initialize if needed
+                e2.setResultado("");  // Initialize if needed
 
                 VerticalLayout rightTeamLayout = new VerticalLayout();
                 rightTeamLayout.add(new Span("Equipo Derecho: " + rightTeamName));

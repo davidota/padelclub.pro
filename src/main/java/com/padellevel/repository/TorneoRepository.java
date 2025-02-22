@@ -36,6 +36,12 @@ public interface TorneoRepository extends JpaRepository<Torneo, Long>, JpaSpecif
 
     @Query("SELECT t FROM Torneo t JOIN FETCH t.jugadores WHERE t.id = :id")
     Torneo findWithJugadoresById(Long id);
+
+    @Query("SELECT t FROM Torneo t LEFT JOIN FETCH t.enfrentamientos WHERE t.id = :id")
+    Torneo findByIdWithEnfrentamientos(@Param("id") Long id);
+
+    @Query("SELECT DISTINCT t FROM Torneo t LEFT JOIN FETCH t.pozos WHERE t.id = :id")
+    Torneo findByIdWithPozos(@Param("id") Long id);
     
     // ...remove any redundant queries if present...
 }

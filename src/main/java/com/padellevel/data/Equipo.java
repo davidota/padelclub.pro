@@ -18,6 +18,11 @@ public class Equipo {
     @ManyToOne(optional = false)
     private User participante2;
 
+    // New mapping to link Equipo to Pozo
+    @ManyToOne
+    @JoinColumn(name = "pozo_id")
+    private Pozo pozo;
+
     // Getters y Setters
 
     public Long getId() {
@@ -42,6 +47,15 @@ public class Equipo {
 
     public void setParticipante2(User participante2) {
         this.participante2 = participante2;
+    }
+
+    // Getters and setters for new field
+    public Pozo getPozo() {
+        return pozo;
+    }
+
+    public void setPozo(Pozo pozo) {
+        this.pozo = pozo;
     }
 
     // Método para obtener el nombre del equipo

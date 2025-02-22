@@ -33,6 +33,10 @@ public class Torneo {
     @OneToMany(mappedBy = "torneo", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Enfrentamiento> enfrentamientos = new ArrayList<>();
 
+    // New relationship: a torneo has multiple pozos
+    @OneToMany(mappedBy = "torneo", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Pozo> pozos = new ArrayList<>();
+
     // Getters y Setters
     public Long getId() {
         return id;
@@ -112,5 +116,13 @@ public class Torneo {
 
     public void setEnfrentamientos(List<Enfrentamiento> enfrentamientos) {
         this.enfrentamientos = enfrentamientos;
+    }
+
+    public List<Pozo> getPozos() {
+        return pozos;
+    }
+
+    public void setPozos(List<Pozo> pozos) {
+        this.pozos = pozos;
     }
 }

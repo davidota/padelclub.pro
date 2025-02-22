@@ -2,6 +2,7 @@ package com.padellevel.data;
 
 import jakarta.persistence.*;
 import java.io.Serializable;
+import java.util.List;
 
 @Entity
 @Table(name = "enfrentamientos")
@@ -16,14 +17,22 @@ public class Enfrentamiento implements Serializable {
     private Torneo torneo;
 
     @ManyToOne
-    @JoinColumn(name = "equipo1_id", nullable = false)
+    @JoinColumn(name = "pozo_id")
+    private Pozo pozo;
+
+    // Change nullable flag to true for generated records that do not set teams.
+    @ManyToOne
+    @JoinColumn(name = "equipo1_id", nullable = true)
     private Equipo equipo1;
 
     @ManyToOne
-    @JoinColumn(name = "equipo2_id", nullable = false)
+    @JoinColumn(name = "equipo2_id", nullable = true)
     private Equipo equipo2;
 
     private String resultado;
+
+    @ElementCollection
+    private List<String> juegos;
 
     // Constructores
     public Enfrentamiento() {}
@@ -43,6 +52,14 @@ public class Enfrentamiento implements Serializable {
 
     public void setTorneo(Torneo torneo) {
         this.torneo = torneo;
+    }
+
+    public Pozo getPozo() {
+        return pozo;
+    }
+
+    public void setPozo(Pozo pozo) {
+        this.pozo = pozo;
     }
 
     public Equipo getEquipo1() {
@@ -65,7 +82,15 @@ public class Enfrentamiento implements Serializable {
         return resultado;
     }
 
-    public void setEquipoGanador(String resultado) {
+    public void setResultado(String resultado) {
         this.resultado = resultado;
+    }
+
+    public List<String> getJuegos() {
+        return juegos;
+    }
+
+    public void setJuegos(List<String> juegos) {
+        this.juegos = juegos;
     }
 }

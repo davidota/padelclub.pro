@@ -2,9 +2,11 @@ package com.padellevel.services;
 
 import com.padellevel.data.Torneo;
 import com.padellevel.data.Equipo;
+import com.padellevel.data.Pozo;
 import com.padellevel.data.Enfrentamiento;
 import com.padellevel.repository.TorneoRepository;
 import com.padellevel.services.EnfrentamientoService;
+import com.padellevel.services.PozoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,11 +19,13 @@ public class TorneoService {
 
     private final TorneoRepository torneoRepository;
     private final EnfrentamientoService enfrentamientoService;
+    private final PozoService pozoService;
 
     @Autowired
-    public TorneoService(TorneoRepository torneoRepository, EnfrentamientoService enfrentamientoService) {
+    public TorneoService(TorneoRepository torneoRepository, EnfrentamientoService enfrentamientoService, PozoService pozoService) {
         this.torneoRepository = torneoRepository;
         this.enfrentamientoService = enfrentamientoService;
+        this.pozoService = pozoService;
     }
 
     // Método para guardar un torneo
@@ -35,10 +39,15 @@ public class TorneoService {
         return torneoRepository.findAll();
     }
 
-    // Método para recuperar un torneo por ID con jugadores inicializados
+    // Método para recuperar un torneo por ID with pozos initialized
     @Transactional(readOnly = true)
     public Torneo findById(Long id) {
-        return torneoRepository.findById(id).orElse(null);
+        Torneo torneo = torneoRepository.findByIdWithJugadores(id);
+        if (torneo != null) {
+            torneo.setJugadores(new java.util.ArrayList<>(torneo.getJugadores()));
+            torneo.setPozos(new java.util.ArrayList<>(torneo.getPozos()));
+        }
+        return torneo;
     }
 
     public void delete(Long id) {
@@ -86,5 +95,23 @@ public class TorneoService {
         }
         int totalEnfrentamientosPorEquipo = torneo.getJuegosPorEnfrentamiento() * torneo.getNumeroDeVueltas();
         return enfrentamientoService.generarEnfrentamientosConRestricciones(equipos, totalEnfrentamientosPorEquipo);
+    }
+
+    @Transactional
+    public Torneo addPozoToTorneo(Long torneoId, Pozo pozo) {
+        Torneo torneo = findById(torneoId); // Fetches torneo with pozos initialized
+        if (pozo.getId() == null) {
+            // For a new pozo, add it directly
+            torneo.getPozos().add(pozo);
+        } else {
+            Optional<Pozo> opt = pozoService.findById(pozo.getId());
+            Pozo managedPozo = opt.orElse(pozo);
+            boolean exists = torneo.getPozos().stream()
+                .anyMatch(p -> p.getId() != null && p.getId().equals(managedPozo.getId()));
+            if (!exists) {
+                torneo.getPozos().add(managedPozo);
+            }
+        }
+        return torneoRepository.save(torneo);
     }
 }
