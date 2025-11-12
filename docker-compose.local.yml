@@ -1,0 +1,66 @@
+# ===================================================================
+# Docker Compose - Entorno LOCAL
+# ===================================================================
+# Uso:
+# docker-compose -f docker-compose.local.yml up -d
+# ===================================================================
+
+version: '3.8'
+
+services:
+  # PostgreSQL (opcional en local - por defecto usa HSQLDB)
+  postgres:
+    image: postgres:15-alpine
+    container_name: padelclub-postgres-local
+    environment:
+      POSTGRES_DB: padelclub_local
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data-local:/var/lib/postgresql/data
+    networks:
+      - padelclub-network
+
+  # Redis (opcional en local)
+  redis:
+    image: redis:7-alpine
+    container_name: padelclub-redis-local
+    ports:
+      - "6379:6379"
+    networks:
+      - padelclub-network
+
+  # Aplicación
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: padelclub-app-local
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - DB_HOST=postgres
+      - DB_NAME=padelclub_local
+      - DB_USER=admin
+      - DB_PASSWORD=admin123
+      - REDIS_HOST=redis
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    networks:
+      - padelclub-network
+    restart: unless-stopped
+
+volumes:
+  postgres-data-local:
+    driver: local
+
+networks:
+  padelclub-network:
+    driver: bridge

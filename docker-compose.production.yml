@@ -1,0 +1,274 @@
+# ===================================================================
+# Docker Compose - Entorno PRODUCCIÓN
+# ===================================================================
+# Uso:
+# docker-compose -f docker-compose.production.yml up -d
+# ===================================================================
+
+version: '3.8'
+
+services:
+  # PostgreSQL Principal
+  postgres-primary:
+    image: postgres:15-alpine
+    container_name: padelclub-postgres-prod-primary
+    environment:
+      POSTGRES_DB: ${DB_NAME:-padelclub_prod}
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_REPLICATION_MODE: master
+      POSTGRES_REPLICATION_USER: replicator
+      POSTGRES_REPLICATION_PASSWORD: ${REPLICATION_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data-prod-primary:/var/lib/postgresql/data
+      - ./backups:/backups
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    networks:
+      - padelclub-network
+    restart: always
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+
+  # PostgreSQL Réplica (read-only)
+  postgres-replica:
+    image: postgres:15-alpine
+    container_name: padelclub-postgres-prod-replica
+    environment:
+      POSTGRES_REPLICATION_MODE: slave
+      POSTGRES_MASTER_SERVICE: postgres-primary
+      POSTGRES_REPLICATION_USER: replicator
+      POSTGRES_REPLICATION_PASSWORD: ${REPLICATION_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-data-prod-replica:/var/lib/postgresql/data
+    networks:
+      - padelclub-network
+    depends_on:
+      - postgres-primary
+    restart: always
+
+  # Redis Cluster (3 nodes)
+  redis-node-1:
+    image: redis:7-alpine
+    container_name: padelclub-redis-prod-1
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes --cluster-enabled yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data-prod-1:/data
+    networks:
+      - padelclub-network
+    restart: always
+
+  redis-node-2:
+    image: redis:7-alpine
+    container_name: padelclub-redis-prod-2
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes --cluster-enabled yes
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-data-prod-2:/data
+    networks:
+      - padelclub-network
+    restart: always
+
+  redis-node-3:
+    image: redis:7-alpine
+    container_name: padelclub-redis-prod-3
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes --cluster-enabled yes
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis-data-prod-3:/data
+    networks:
+      - padelclub-network
+    restart: always
+
+  # Aplicación - Instance 1
+  app-1:
+    image: padelclub-pro:${VERSION}
+    container_name: padelclub-app-prod-1
+    environment:
+      - SPRING_PROFILES_ACTIVE=production
+      - DB_HOST=postgres-primary
+      - DB_NAME=${DB_NAME:-padelclub_prod}
+      - DB_USER=${DB_USER:-admin}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_CLUSTER_NODES=redis-node-1:6379,redis-node-2:6379,redis-node-3:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - STRIPE_LIVE_SECRET_KEY=${STRIPE_LIVE_SECRET_KEY}
+      - STRIPE_LIVE_PUBLIC_KEY=${STRIPE_LIVE_PUBLIC_KEY}
+      - STRIPE_LIVE_WEBHOOK_SECRET=${STRIPE_LIVE_WEBHOOK_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - FIREBASE_CREDENTIALS_PATH=${FIREBASE_CREDENTIALS_PATH}
+      - SSL_KEYSTORE_PATH=/app/credentials/keystore.p12
+      - SSL_KEYSTORE_PASSWORD=${SSL_KEYSTORE_PASSWORD}
+      - JAVA_OPTS=-Xms2g -Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+HeapDumpOnOutOfMemoryError
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgres-primary
+      - redis-node-1
+      - redis-node-2
+      - redis-node-3
+    volumes:
+      - ./logs:/app/logs
+      - ./credentials:/app/credentials:ro
+    networks:
+      - padelclub-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  # Aplicación - Instance 2 (redundancia)
+  app-2:
+    image: padelclub-pro:${VERSION}
+    container_name: padelclub-app-prod-2
+    environment:
+      - SPRING_PROFILES_ACTIVE=production
+      - DB_HOST=postgres-primary
+      - DB_NAME=${DB_NAME:-padelclub_prod}
+      - DB_USER=${DB_USER:-admin}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_CLUSTER_NODES=redis-node-1:6379,redis-node-2:6379,redis-node-3:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - STRIPE_LIVE_SECRET_KEY=${STRIPE_LIVE_SECRET_KEY}
+      - STRIPE_LIVE_PUBLIC_KEY=${STRIPE_LIVE_PUBLIC_KEY}
+      - STRIPE_LIVE_WEBHOOK_SECRET=${STRIPE_LIVE_WEBHOOK_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - FIREBASE_CREDENTIALS_PATH=${FIREBASE_CREDENTIALS_PATH}
+      - SSL_KEYSTORE_PATH=/app/credentials/keystore.p12
+      - SSL_KEYSTORE_PASSWORD=${SSL_KEYSTORE_PASSWORD}
+      - JAVA_OPTS=-Xms2g -Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+HeapDumpOnOutOfMemoryError
+    ports:
+      - "8082:8080"
+    depends_on:
+      - postgres-primary
+      - redis-node-1
+      - redis-node-2
+      - redis-node-3
+    volumes:
+      - ./logs:/app/logs
+      - ./credentials:/app/credentials:ro
+    networks:
+      - padelclub-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  # Nginx Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: padelclub-nginx-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/production.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app-1
+      - app-2
+    networks:
+      - padelclub-network
+    restart: always
+
+  # Prometheus (monitoreo)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: padelclub-prometheus-prod
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data-prod:/prometheus
+    networks:
+      - padelclub-network
+    restart: always
+
+  # Grafana (visualización)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: padelclub-grafana-prod
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana-data-prod:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    networks:
+      - padelclub-network
+    restart: always
+
+  # Backup Service
+  backup:
+    image: postgres:15-alpine
+    container_name: padelclub-backup-prod
+    environment:
+      - POSTGRES_HOST=postgres-primary
+      - POSTGRES_DB=${DB_NAME:-padelclub_prod}
+      - POSTGRES_USER=${DB_USER:-admin}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - BACKUP_SCHEDULE=0 */6 * * *
+      - S3_BUCKET=${BACKUP_S3_BUCKET}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup.sh:/backup.sh:ro
+    networks:
+      - padelclub-network
+    restart: always
+    command: crond -f
+
+volumes:
+  postgres-data-prod-primary:
+    driver: local
+  postgres-data-prod-replica:
+    driver: local
+  redis-data-prod-1:
+    driver: local
+  redis-data-prod-2:
+    driver: local
+  redis-data-prod-3:
+    driver: local
+  prometheus-data-prod:
+    driver: local
+  grafana-data-prod:
+    driver: local
+
+networks:
+  padelclub-network:
+    driver: bridge
