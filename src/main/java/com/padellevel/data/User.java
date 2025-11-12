@@ -1,41 +1,120 @@
 package com.padellevel.data;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
-import java.util.Set;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
+/**
+ * Entidad Usuario que representa a un jugador, administrador u operador del sistema.
+ */
 @Entity
-@Table(name = "application_user", uniqueConstraints = { @UniqueConstraint(columnNames = "username") })
+@Table(name = "application_user", uniqueConstraints = {
+    @UniqueConstraint(columnNames = "username"),
+    @UniqueConstraint(columnNames = "email")
+})
 public class User extends AbstractEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @NotBlank
     @Column(unique = true)
     private String username;
+
+    @Email
+    @Column(unique = true)
+    private String email;
+
+    /**
+     * Google ID para autenticación OAuth2.
+     */
+    @Column(name = "google_id")
+    private String googleId;
+
     private String name;
-    private String apellido; // Nuevo campo
+
+    private String apellido;
+
     @JsonIgnore
     private String hashedPassword;
-    @Enumerated(EnumType.STRING)
-    @ElementCollection(fetch = FetchType.EAGER)
-    private Set<Role> roles = new HashSet<>(); // Inicializar roles para evitar null
+
+    private String telefono;
+
+    @Column(name = "fecha_nacimiento")
+    private LocalDate fechaNacimiento;
+
+    /**
+     * Biografía del jugador para perfil social.
+     */
+    @Column(length = 500)
+    private String bio;
+
     @Lob
     @Column(length = 1000000)
     private byte[] profilePicture;
-    
-    private transient String password; // Transient field for plaintext password
+
+    /**
+     * Nivel de habilidad del jugador.
+     */
+    @Enumerated(EnumType.STRING)
+    private NivelJugador nivel;
+
+    @Enumerated(EnumType.STRING)
+    @ElementCollection(fetch = FetchType.EAGER)
+    private Set<Role> roles = new HashSet<>();
+
+    /**
+     * Inscripciones del jugador en torneos.
+     */
+    @OneToMany(mappedBy = "jugador", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<Inscripcion> inscripciones = new ArrayList<>();
+
+    /**
+     * Estadísticas del jugador.
+     */
+    @OneToMany(mappedBy = "jugador", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<EstadisticaJugador> estadisticas = new ArrayList<>();
+
+    /**
+     * Notificaciones recibidas.
+     */
+    @OneToMany(mappedBy = "destinatario", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<Notificacion> notificaciones = new ArrayList<>();
+
+    /**
+     * Logros desbloqueados por el jugador.
+     */
+    @ManyToMany(mappedBy = "jugadores")
+    @JsonIgnore
+    private List<Logro> logros = new ArrayList<>();
+
+    /**
+     * Indica si el usuario está activo en el sistema.
+     */
+    private Boolean activo = true;
+
+    /**
+     * Fecha y hora del último acceso del usuario.
+     */
+    @Column(name = "ultimo_acceso")
+    private LocalDateTime ultimoAcceso;
+
+    /**
+     * Campo transitorio para contraseña en texto plano (no se persiste).
+     */
+    @Transient
+    private String password;
 
     // Getters y setters...
 
@@ -110,8 +189,130 @@ public class User extends AbstractEntity {
     }
 
     public void setRole(Set<Role> role) {
-
         this.roles = role;
+    }
 
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getGoogleId() {
+        return googleId;
+    }
+
+    public void setGoogleId(String googleId) {
+        this.googleId = googleId;
+    }
+
+    public String getTelefono() {
+        return telefono;
+    }
+
+    public void setTelefono(String telefono) {
+        this.telefono = telefono;
+    }
+
+    public LocalDate getFechaNacimiento() {
+        return fechaNacimiento;
+    }
+
+    public void setFechaNacimiento(LocalDate fechaNacimiento) {
+        this.fechaNacimiento = fechaNacimiento;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
+    public NivelJugador getNivel() {
+        return nivel;
+    }
+
+    public void setNivel(NivelJugador nivel) {
+        this.nivel = nivel;
+    }
+
+    public List<Inscripcion> getInscripciones() {
+        return inscripciones;
+    }
+
+    public void setInscripciones(List<Inscripcion> inscripciones) {
+        this.inscripciones = inscripciones;
+    }
+
+    public List<EstadisticaJugador> getEstadisticas() {
+        return estadisticas;
+    }
+
+    public void setEstadisticas(List<EstadisticaJugador> estadisticas) {
+        this.estadisticas = estadisticas;
+    }
+
+    public List<Notificacion> getNotificaciones() {
+        return notificaciones;
+    }
+
+    public void setNotificaciones(List<Notificacion> notificaciones) {
+        this.notificaciones = notificaciones;
+    }
+
+    public List<Logro> getLogros() {
+        return logros;
+    }
+
+    public void setLogros(List<Logro> logros) {
+        this.logros = logros;
+    }
+
+    public Boolean getActivo() {
+        return activo;
+    }
+
+    public void setActivo(Boolean activo) {
+        this.activo = activo;
+    }
+
+    public LocalDateTime getUltimoAcceso() {
+        return ultimoAcceso;
+    }
+
+    public void setUltimoAcceso(LocalDateTime ultimoAcceso) {
+        this.ultimoAcceso = ultimoAcceso;
+    }
+
+    /**
+     * Método de conveniencia para obtener el nombre completo.
+     */
+    public String getNombreCompleto() {
+        return name + (apellido != null ? " " + apellido : "");
+    }
+
+    /**
+     * Verifica si el usuario tiene un rol específico.
+     */
+    public boolean hasRole(Role role) {
+        return roles != null && roles.contains(role);
+    }
+
+    /**
+     * Verifica si el usuario es administrador.
+     */
+    public boolean isAdmin() {
+        return hasRole(Role.ADMIN);
+    }
+
+    /**
+     * Verifica si el usuario es jugador.
+     */
+    public boolean isPlayer() {
+        return hasRole(Role.PLAYER);
     }
 }
