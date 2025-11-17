@@ -71,4 +71,13 @@ public interface PistaRepository extends JpaRepository<Pista, Long>, JpaSpecific
     @Query("SELECT p FROM Pista p WHERE p.club.id = :clubId AND p.disponible = :disponible")
     List<Pista> findByClubIdAndDisponible(@Param("clubId") Long clubId,
                                            @Param("disponible") Boolean disponible);
+
+    /**
+     * Find a pista by its court number.
+     * Note: This searches across all clubs, so numero should be unique or combined with club filter.
+     *
+     * @param numero the court number
+     * @return optional containing the pista if found
+     */
+    Optional<Pista> findByNumero(Integer numero);
 }

@@ -2,8 +2,10 @@ package com.padellevel.repository;
 
 import com.padellevel.data.Enfrentamiento;
 import com.padellevel.data.EstadoEnfrentamiento;
+import com.padellevel.data.Pozo;
 import com.padellevel.data.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -12,7 +14,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
-public interface EnfrentamientoRepository extends JpaRepository<Enfrentamiento, Long> {
+public interface EnfrentamientoRepository extends JpaRepository<Enfrentamiento, Long>, JpaSpecificationExecutor<Enfrentamiento> {
 
     /**
      * Finds enfrentamientos by their state.
@@ -100,4 +102,20 @@ public interface EnfrentamientoRepository extends JpaRepository<Enfrentamiento, 
      * @return list of matches matching both criteria
      */
     List<Enfrentamiento> findByPozoIdAndEstado(Long pozoId, EstadoEnfrentamiento estado);
+
+    /**
+     * Finds enfrentamientos by pozo and round number.
+     * Used for elimination brackets to advance winners.
+     * @param pozo the pozo
+     * @param ronda the round number
+     * @return list of matches for the specified pozo and round
+     */
+    List<Enfrentamiento> findByPozoAndRonda(Pozo pozo, Integer ronda);
+
+    /**
+     * Finds enfrentamientos by pozo.
+     * @param pozo the pozo
+     * @return list of all matches for the specified pozo
+     */
+    List<Enfrentamiento> findByPozo(Pozo pozo);
 }
