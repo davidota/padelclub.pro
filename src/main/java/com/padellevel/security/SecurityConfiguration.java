@@ -2,6 +2,7 @@ package com.padellevel.security;
 
 import com.padellevel.views.login.LoginView;
 import com.vaadin.flow.spring.security.VaadinWebSecurity;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 // Importaciones necesarias
@@ -11,9 +12,24 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
+/**
+ * Configuración de seguridad de Spring Security con soporte para OAuth2.
+ *
+ * Características:
+ * - Autenticación tradicional con username/password
+ * - Autenticación OAuth2 con Google
+ * - Protección de rutas
+ * - Integración con Vaadin Flow
+ */
 @EnableWebSecurity
 @Configuration
 public class SecurityConfiguration extends VaadinWebSecurity {
+
+    @Autowired
+    private CustomOAuth2UserService customOAuth2UserService;
+
+    @Autowired
+    private OAuth2LoginSuccessHandler oauth2LoginSuccessHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -28,13 +44,17 @@ public class SecurityConfiguration extends VaadinWebSecurity {
             .requestMatchers(new AntPathRequestMatcher("/images/*.png")).permitAll()
             .requestMatchers(new AntPathRequestMatcher("/line-awesome/**/*.svg")).permitAll()
             .requestMatchers(new AntPathRequestMatcher("/h2-console/**")).permitAll()
+            .requestMatchers(new AntPathRequestMatcher("/api/stripe/webhook")).permitAll() // Webhook de Stripe
+            .requestMatchers(new AntPathRequestMatcher("/oauth2/**")).permitAll() // OAuth2 callbacks
+            .requestMatchers(new AntPathRequestMatcher("/login/oauth2/**")).permitAll() // OAuth2 login
             // Otras rutas permitidas...
             // .anyRequest().authenticated() // Descomenta según tus necesidades
         );
 
-        // Configurar CSRF para ignorar la consola de H2
+        // Configurar CSRF para ignorar webhooks y consola
         http.csrf(csrf -> csrf
             .ignoringRequestMatchers(new AntPathRequestMatcher("/h2-console/**"))
+            .ignoringRequestMatchers(new AntPathRequestMatcher("/api/stripe/webhook"))
         );
 
         // Permitir frames para la consola de H2
@@ -42,6 +62,16 @@ public class SecurityConfiguration extends VaadinWebSecurity {
             .frameOptions(frameOptions -> frameOptions
                 .disable()
             )
+        );
+
+        // Configurar OAuth2 Login
+        http.oauth2Login(oauth2 -> oauth2
+            .userInfoEndpoint(userInfo -> userInfo
+                .userService(customOAuth2UserService)
+            )
+            .successHandler(oauth2LoginSuccessHandler)
+            .defaultSuccessUrl("/", true)
+            .failureUrl("/login?error=oauth2")
         );
 
         // Configuración de Vaadin
