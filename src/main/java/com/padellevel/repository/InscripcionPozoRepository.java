@@ -1,5 +1,6 @@
 package com.padellevel.repository;
 
+import com.padellevel.data.EstadoInscripcion;
 import com.padellevel.data.InscripcionPozo;
 import com.padellevel.data.User;
 import com.padellevel.data.Pozo;
@@ -99,4 +100,13 @@ public interface InscripcionPozoRepository extends JpaRepository<InscripcionPozo
      */
     @Query("SELECT COUNT(ip) > 0 FROM InscripcionPozo ip WHERE ip.jugador.id = :jugadorId AND ip.pozo.id = :pozoId")
     boolean existsByJugadorIdAndPozoId(@Param("jugadorId") Long jugadorId, @Param("pozoId") Long pozoId);
+
+    /**
+     * Count inscriptions for a pozo with a specific status (using enum).
+     *
+     * @param pozo the pozo entity
+     * @param estado the inscription status enum
+     * @return the number of inscriptions matching the criteria
+     */
+    Long countByPozoAndEstado(Pozo pozo, EstadoInscripcion estado);
 }

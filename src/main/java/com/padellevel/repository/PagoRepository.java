@@ -1,7 +1,10 @@
 package com.padellevel.repository;
 
+import com.padellevel.data.EstadoPago;
 import com.padellevel.data.Pago;
 import com.padellevel.data.Inscripcion;
+import com.padellevel.data.Torneo;
+import com.padellevel.data.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -102,4 +105,45 @@ public interface PagoRepository extends JpaRepository<Pago, Long>, JpaSpecificat
      */
     @Query("SELECT p FROM Pago p WHERE p.inscripcion.jugador.id = :jugadorId ORDER BY p.fechaPago DESC")
     List<Pago> findByJugadorId(@Param("jugadorId") Long jugadorId);
+
+    /**
+     * Find a payment by Stripe Payment Intent ID.
+     *
+     * @param paymentIntentId the Stripe Payment Intent ID
+     * @return optional containing the payment if found
+     */
+    Optional<Pago> findByStripePaymentIntentId(String paymentIntentId);
+
+    /**
+     * Find all payments for a specific tournament.
+     *
+     * @param torneo the tournament entity
+     * @return list of payments for the specified tournament
+     */
+    List<Pago> findByTorneo(Torneo torneo);
+
+    /**
+     * Find all payments for a specific player.
+     *
+     * @param jugador the player/user entity
+     * @return list of payments made by the specified player
+     */
+    List<Pago> findByJugador(User jugador);
+
+    /**
+     * Find payments by status (using enum).
+     *
+     * @param estado the payment status enum
+     * @return list of payments with the specified status
+     */
+    List<Pago> findByEstado(EstadoPago estado);
+
+    /**
+     * Find payments for a tournament with a specific status.
+     *
+     * @param torneo the tournament entity
+     * @param estado the payment status enum
+     * @return list of payments matching the criteria
+     */
+    List<Pago> findByTorneoAndEstado(Torneo torneo, EstadoPago estado);
 }

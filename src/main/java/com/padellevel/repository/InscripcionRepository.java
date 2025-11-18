@@ -1,5 +1,6 @@
 package com.padellevel.repository;
 
+import com.padellevel.data.EstadoInscripcion;
 import com.padellevel.data.Inscripcion;
 import com.padellevel.data.User;
 import com.padellevel.data.Torneo;
@@ -99,4 +100,22 @@ public interface InscripcionRepository extends JpaRepository<Inscripcion, Long>,
      */
     @Query("SELECT COUNT(i) > 0 FROM Inscripcion i WHERE i.jugador.id = :jugadorId AND i.torneo.id = :torneoId")
     boolean existsByJugadorIdAndTorneoId(@Param("jugadorId") Long jugadorId, @Param("torneoId") Long torneoId);
+
+    /**
+     * Find inscriptions for a tournament with a specific status (using enum).
+     *
+     * @param torneo the tournament entity
+     * @param estado the inscription status enum
+     * @return list of inscriptions matching the criteria
+     */
+    List<Inscripcion> findByTorneoAndEstado(Torneo torneo, EstadoInscripcion estado);
+
+    /**
+     * Count inscriptions for a tournament with a specific status (using enum).
+     *
+     * @param torneo the tournament entity
+     * @param estado the inscription status enum
+     * @return the number of inscriptions matching the criteria
+     */
+    Long countByTorneoAndEstado(Torneo torneo, EstadoInscripcion estado);
 }
