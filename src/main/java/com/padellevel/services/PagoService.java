@@ -37,6 +37,7 @@ public class PagoService {
 
     private final PagoRepository pagoRepository;
     private final StripeConfig stripeConfig;
+    private NotificacionService notificacionService; // Lazy injection to avoid circular dependency
 
     // Moneda por defecto (EUR para España)
     private static final String DEFAULT_CURRENCY = "eur";
@@ -44,6 +45,13 @@ public class PagoService {
     public PagoService(PagoRepository pagoRepository, StripeConfig stripeConfig) {
         this.pagoRepository = pagoRepository;
         this.stripeConfig = stripeConfig;
+    }
+
+    /**
+     * Sets the NotificacionService (lazy injection to avoid circular dependency).
+     */
+    public void setNotificacionService(NotificacionService notificacionService) {
+        this.notificacionService = notificacionService;
     }
 
     /**
@@ -207,6 +215,16 @@ public class PagoService {
 
         // Actualizar estado de inscripción
         actualizarEstadoInscripcionTrasConfirmacion(pago);
+
+        // Enviar notificación de pago confirmado
+        if (notificacionService != null) {
+            try {
+                notificacionService.notificarPagoConfirmado(pagoGuardado);
+            } catch (Exception e) {
+                logger.error("Error al enviar notificación de pago confirmado", e);
+                // No fallar la confirmación por error de notificación
+            }
+        }
 
         logger.info("Pago {} confirmado exitosamente", pago.getId());
         return pagoGuardado;

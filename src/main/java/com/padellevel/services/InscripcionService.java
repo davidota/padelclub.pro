@@ -32,6 +32,7 @@ public class InscripcionService {
     private final InscripcionRepository inscripcionRepository;
     private final InscripcionPozoRepository inscripcionPozoRepository;
     private final PagoService pagoService;
+    private NotificacionService notificacionService; // Lazy injection to avoid circular dependency
 
     public InscripcionService(InscripcionRepository inscripcionRepository,
                              InscripcionPozoRepository inscripcionPozoRepository,
@@ -39,6 +40,13 @@ public class InscripcionService {
         this.inscripcionRepository = inscripcionRepository;
         this.inscripcionPozoRepository = inscripcionPozoRepository;
         this.pagoService = pagoService;
+    }
+
+    /**
+     * Sets the NotificacionService (lazy injection to avoid circular dependency).
+     */
+    public void setNotificacionService(NotificacionService notificacionService) {
+        this.notificacionService = notificacionService;
     }
 
     /**
@@ -106,6 +114,16 @@ public class InscripcionService {
             inscripcionGuardada.setPago(pago);
             logger.info("Payment Intent creado - Client Secret: {}",
                        pago.getStripeClientSecret() != null ? "generado" : "N/A");
+        } else {
+            // Si es torneo gratuito, enviar notificación de confirmación inmediata
+            if (notificacionService != null) {
+                try {
+                    notificacionService.notificarInscripcionConfirmada(inscripcionGuardada);
+                } catch (Exception e) {
+                    logger.error("Error al enviar notificación de inscripción confirmada", e);
+                    // No fallar la inscripción por error de notificación
+                }
+            }
         }
 
         logger.info("Inscripción creada exitosamente - ID: {}", inscripcionGuardada.getId());
