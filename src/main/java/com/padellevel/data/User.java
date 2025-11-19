@@ -100,6 +100,18 @@ public class User extends AbstractEntity {
     private List<Logro> logros = new ArrayList<>();
 
     /**
+     * Experiencia total acumulada en el sistema de gamificación.
+     */
+    @Column(name = "experiencia_total")
+    private Integer experienciaTotal = 0;
+
+    /**
+     * Nivel de gamificación del jugador (1-100).
+     */
+    @Column(name = "nivel_gamificacion")
+    private Integer nivelGamificacion = 1;
+
+    /**
      * Indica si el usuario está activo en el sistema.
      */
     private Boolean activo = true;
@@ -288,11 +300,64 @@ public class User extends AbstractEntity {
         this.ultimoAcceso = ultimoAcceso;
     }
 
+    public Integer getExperienciaTotal() {
+        return experienciaTotal != null ? experienciaTotal : 0;
+    }
+
+    public void setExperienciaTotal(Integer experienciaTotal) {
+        this.experienciaTotal = experienciaTotal;
+    }
+
+    public Integer getNivelGamificacion() {
+        return nivelGamificacion != null ? nivelGamificacion : 1;
+    }
+
+    public void setNivelGamificacion(Integer nivelGamificacion) {
+        this.nivelGamificacion = nivelGamificacion;
+    }
+
     /**
      * Método de conveniencia para obtener el nombre completo.
      */
     public String getNombreCompleto() {
         return name + (apellido != null ? " " + apellido : "");
+    }
+
+    /**
+     * Calcula la XP necesaria para alcanzar un nivel específico.
+     * Fórmula: nivel * 100 + (nivel - 1) * 50
+     */
+    public static int calcularXPParaNivel(int nivel) {
+        if (nivel <= 1) return 0;
+        return nivel * 100 + (nivel - 1) * 50;
+    }
+
+    /**
+     * Calcula la XP necesaria para el siguiente nivel.
+     */
+    public int getXPParaSiguienteNivel() {
+        return calcularXPParaNivel(getNivelGamificacion() + 1);
+    }
+
+    /**
+     * Calcula la XP necesaria para el nivel actual.
+     */
+    public int getXPParaNivelActual() {
+        return calcularXPParaNivel(getNivelGamificacion());
+    }
+
+    /**
+     * Calcula el progreso hacia el siguiente nivel (0-100%).
+     */
+    public double getProgresoNivel() {
+        int xpActual = getExperienciaTotal();
+        int xpNivelActual = getXPParaNivelActual();
+        int xpSiguienteNivel = getXPParaSiguienteNivel();
+
+        if (xpSiguienteNivel <= xpNivelActual) return 100.0;
+
+        double progreso = ((double) (xpActual - xpNivelActual) / (xpSiguienteNivel - xpNivelActual)) * 100;
+        return Math.max(0, Math.min(100, progreso));
     }
 
     /**

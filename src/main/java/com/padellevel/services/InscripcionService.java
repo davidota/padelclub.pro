@@ -33,6 +33,7 @@ public class InscripcionService {
     private final InscripcionPozoRepository inscripcionPozoRepository;
     private final PagoService pagoService;
     private NotificacionService notificacionService; // Lazy injection to avoid circular dependency
+    private GamificacionService gamificacionService; // Lazy injection to avoid circular dependency
 
     public InscripcionService(InscripcionRepository inscripcionRepository,
                              InscripcionPozoRepository inscripcionPozoRepository,
@@ -47,6 +48,13 @@ public class InscripcionService {
      */
     public void setNotificacionService(NotificacionService notificacionService) {
         this.notificacionService = notificacionService;
+    }
+
+    /**
+     * Sets the GamificacionService (lazy injection to avoid circular dependency).
+     */
+    public void setGamificacionService(GamificacionService gamificacionService) {
+        this.gamificacionService = gamificacionService;
     }
 
     /**
@@ -122,6 +130,17 @@ public class InscripcionService {
                 } catch (Exception e) {
                     logger.error("Error al enviar notificación de inscripción confirmada", e);
                     // No fallar la inscripción por error de notificación
+                }
+            }
+
+            // Otorgar XP por inscripción
+            if (gamificacionService != null) {
+                try {
+                    gamificacionService.otorgarXPInscripcion(jugador);
+                    gamificacionService.actualizarProgresoLogro(jugador, TipoLogro.DEBUT, 1);
+                } catch (Exception e) {
+                    logger.error("Error al otorgar XP por inscripción", e);
+                    // No fallar la inscripción por error de gamificación
                 }
             }
         }

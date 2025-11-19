@@ -55,6 +55,11 @@ public enum TipoNotificacion {
     LOGRO_DESBLOQUEADO("Logro Desbloqueado", "🎖️"),
 
     /**
+     * Subida de nivel - El jugador alcanzó un nuevo nivel.
+     */
+    SUBIDA_NIVEL("Subida de Nivel", "⬆️"),
+
+    /**
      * Sistema - Notificaciones del sistema.
      */
     SISTEMA("Sistema", "⚙️");

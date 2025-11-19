@@ -38,6 +38,7 @@ public class PagoService {
     private final PagoRepository pagoRepository;
     private final StripeConfig stripeConfig;
     private NotificacionService notificacionService; // Lazy injection to avoid circular dependency
+    private GamificacionService gamificacionService; // Lazy injection to avoid circular dependency
 
     // Moneda por defecto (EUR para España)
     private static final String DEFAULT_CURRENCY = "eur";
@@ -52,6 +53,13 @@ public class PagoService {
      */
     public void setNotificacionService(NotificacionService notificacionService) {
         this.notificacionService = notificacionService;
+    }
+
+    /**
+     * Sets the GamificacionService (lazy injection to avoid circular dependency).
+     */
+    public void setGamificacionService(GamificacionService gamificacionService) {
+        this.gamificacionService = gamificacionService;
     }
 
     /**
@@ -223,6 +231,25 @@ public class PagoService {
             } catch (Exception e) {
                 logger.error("Error al enviar notificación de pago confirmado", e);
                 // No fallar la confirmación por error de notificación
+            }
+        }
+
+        // Otorgar XP y logros por pago completado
+        if (gamificacionService != null) {
+            try {
+                // Determinar quién recibe el XP
+                User jugador = obtenerJugadorDePago(pago);
+                if (jugador != null) {
+                    gamificacionService.otorgarXPPagoCompletado(jugador);
+                    // Si el pago es de inscripción a torneo, otorgar logros de participación
+                    if (pago.getTorneo() != null) {
+                        gamificacionService.otorgarXPInscripcion(jugador);
+                        gamificacionService.actualizarProgresoLogro(jugador, TipoLogro.DEBUT, 1);
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Error al otorgar XP por pago completado", e);
+                // No fallar la confirmación por error de gamificación
             }
         }
 
@@ -492,6 +519,19 @@ public class PagoService {
             inscripcionPozo.setEstado(EstadoInscripcion.PAGADA);
             logger.info("InscripciónPozo {} actualizada a estado PAGADA", inscripcionPozo.getId());
         }
+    }
+
+    /**
+     * Obtiene el jugador asociado a un pago.
+     */
+    private User obtenerJugadorDePago(Pago pago) {
+        if (pago.getInscripcion() != null) {
+            return pago.getInscripcion().getJugador();
+        }
+        if (pago.getInscripcionPozo() != null) {
+            return pago.getInscripcionPozo().getJugador();
+        }
+        return null;
     }
 
     /**
