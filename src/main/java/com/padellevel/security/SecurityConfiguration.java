@@ -47,14 +47,23 @@ public class SecurityConfiguration extends VaadinWebSecurity {
             .requestMatchers(new AntPathRequestMatcher("/api/stripe/webhook")).permitAll() // Webhook de Stripe
             .requestMatchers(new AntPathRequestMatcher("/oauth2/**")).permitAll() // OAuth2 callbacks
             .requestMatchers(new AntPathRequestMatcher("/login/oauth2/**")).permitAll() // OAuth2 login
+            // Rutas de la API REST - acceso público para lectura
+            .requestMatchers(new AntPathRequestMatcher("/api/v1/torneos/**")).permitAll()
+            .requestMatchers(new AntPathRequestMatcher("/api/v1/gamificacion/ranking/**")).permitAll()
+            .requestMatchers(new AntPathRequestMatcher("/api/v1/gamificacion/jugador/**")).permitAll()
+            // Documentación de la API (Swagger/OpenAPI)
+            .requestMatchers(new AntPathRequestMatcher("/swagger-ui/**")).permitAll()
+            .requestMatchers(new AntPathRequestMatcher("/v3/api-docs/**")).permitAll()
+            .requestMatchers(new AntPathRequestMatcher("/swagger-ui.html")).permitAll()
             // Otras rutas permitidas...
             // .anyRequest().authenticated() // Descomenta según tus necesidades
         );
 
-        // Configurar CSRF para ignorar webhooks y consola
+        // Configurar CSRF para ignorar webhooks, consola y API REST
         http.csrf(csrf -> csrf
             .ignoringRequestMatchers(new AntPathRequestMatcher("/h2-console/**"))
             .ignoringRequestMatchers(new AntPathRequestMatcher("/api/stripe/webhook"))
+            .ignoringRequestMatchers(new AntPathRequestMatcher("/api/v1/**")) // Ignorar CSRF para toda la API REST
         );
 
         // Permitir frames para la consola de H2
