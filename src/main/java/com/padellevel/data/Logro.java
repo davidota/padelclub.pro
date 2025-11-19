@@ -47,6 +47,14 @@ public class Logro extends AbstractEntity {
     private Integer meta;
 
     /**
+     * Club al que pertenece este logro.
+     * Si es null, el logro es global (para todos los clubes).
+     */
+    @ManyToOne
+    @JoinColumn(name = "club_id")
+    private Club club;
+
+    /**
      * Jugadores que han desbloqueado este logro.
      */
     @ManyToMany
@@ -107,5 +115,20 @@ public class Logro extends AbstractEntity {
 
     public void setJugadores(List<User> jugadores) {
         this.jugadores = jugadores;
+    }
+
+    public Club getClub() {
+        return club;
+    }
+
+    public void setClub(Club club) {
+        this.club = club;
+    }
+
+    /**
+     * Verifica si el logro es global (no específico de un club).
+     */
+    public boolean esGlobal() {
+        return club == null;
     }
 }

@@ -1,6 +1,7 @@
 package com.padellevel.repository;
 
 import com.padellevel.data.Club;
+import com.padellevel.data.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -60,4 +61,58 @@ public interface ClubRepository extends JpaRepository<Club, Long>, JpaSpecificat
      */
     @Query("SELECT c FROM Club c WHERE c.activo = true AND LOWER(c.ciudad) = LOWER(:ciudad)")
     List<Club> findActiveClubesByCity(@Param("ciudad") String ciudad);
+
+    /**
+     * Encuentra todos los clubes donde el usuario es miembro.
+     *
+     * @param user el usuario
+     * @return lista de clubes donde el usuario es miembro
+     */
+    @Query("SELECT c FROM Club c JOIN c.miembros m WHERE m = :user AND c.activo = true")
+    List<Club> findClubesByMiembro(@Param("user") User user);
+
+    /**
+     * Encuentra todos los clubes donde el usuario es staff.
+     *
+     * @param user el usuario
+     * @return lista de clubes donde el usuario es staff
+     */
+    @Query("SELECT c FROM Club c JOIN c.staff s WHERE s = :user AND c.activo = true")
+    List<Club> findClubesByStaff(@Param("user") User user);
+
+    /**
+     * Encuentra todos los clubes administrados por un usuario.
+     *
+     * @param administrador el usuario administrador
+     * @return lista de clubes administrados por el usuario
+     */
+    List<Club> findByAdministrador(User administrador);
+
+    /**
+     * Encuentra todos los clubes donde el usuario tiene algún rol (miembro, staff o admin).
+     *
+     * @param user el usuario
+     * @return lista de clubes donde el usuario participa
+     */
+    @Query("SELECT DISTINCT c FROM Club c LEFT JOIN c.miembros m LEFT JOIN c.staff s " +
+           "WHERE (m = :user OR s = :user OR c.administrador = :user) AND c.activo = true")
+    List<Club> findAllClubesByUsuario(@Param("user") User user);
+
+    /**
+     * Cuenta el número de miembros de un club.
+     *
+     * @param club el club
+     * @return número de miembros
+     */
+    @Query("SELECT COUNT(m) FROM Club c JOIN c.miembros m WHERE c = :club")
+    long countMiembrosByClub(@Param("club") Club club);
+
+    /**
+     * Cuenta el número de torneos activos de un club.
+     *
+     * @param club el club
+     * @return número de torneos activos
+     */
+    @Query("SELECT COUNT(t) FROM Torneo t WHERE t.club = :club AND t.estado != 'FINALIZADO' AND t.estado != 'CANCELADO'")
+    long countTorneosActivosByClub(@Param("club") Club club);
 }

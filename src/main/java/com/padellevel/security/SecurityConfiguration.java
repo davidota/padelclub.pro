@@ -52,6 +52,9 @@ public class SecurityConfiguration extends VaadinWebSecurity {
             .requestMatchers(new AntPathRequestMatcher("/api/v1/gamificacion/ranking/**")).permitAll()
             .requestMatchers(new AntPathRequestMatcher("/api/v1/gamificacion/jugador/**")).permitAll()
             .requestMatchers(new AntPathRequestMatcher("/api/v1/predicciones/**")).permitAll()
+            .requestMatchers(new AntPathRequestMatcher("/api/v1/clubes")).permitAll()
+            .requestMatchers(new AntPathRequestMatcher("/api/v1/clubes/*/buscar")).permitAll()
+            .requestMatchers(new AntPathRequestMatcher("/api/v1/clubes/*/estadisticas")).permitAll()
             // WebSocket endpoints
             .requestMatchers(new AntPathRequestMatcher("/ws/**")).permitAll()
             // Documentación de la API (Swagger/OpenAPI)

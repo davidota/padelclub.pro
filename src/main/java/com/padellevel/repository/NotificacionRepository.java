@@ -1,5 +1,6 @@
 package com.padellevel.repository;
 
+import com.padellevel.data.Club;
 import com.padellevel.data.Notificacion;
 import com.padellevel.data.User;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -96,4 +97,42 @@ public interface NotificacionRepository extends JpaRepository<Notificacion, Long
      */
     @Query("UPDATE Notificacion n SET n.leida = true WHERE n.destinatario.id = :userId AND n.leida = false")
     void markAllAsReadByUserId(@Param("userId") Long userId);
+
+    /**
+     * Encuentra notificaciones de un usuario en un club específico.
+     *
+     * @param destinatario el destinatario
+     * @param club el club
+     * @return lista de notificaciones del club
+     */
+    @Query("SELECT n FROM Notificacion n WHERE n.destinatario = :destinatario AND n.club = :club ORDER BY n.fechaEnvio DESC")
+    List<Notificacion> findByDestinatarioAndClub(@Param("destinatario") User destinatario, @Param("club") Club club);
+
+    /**
+     * Encuentra notificaciones de un club.
+     *
+     * @param club el club
+     * @return lista de notificaciones del club
+     */
+    List<Notificacion> findByClub(Club club);
+
+    /**
+     * Cuenta notificaciones no leídas de un usuario en un club.
+     *
+     * @param destinatario el destinatario
+     * @param club el club
+     * @return número de notificaciones no leídas del club
+     */
+    @Query("SELECT COUNT(n) FROM Notificacion n WHERE n.destinatario = :destinatario AND n.club = :club AND n.leida = false")
+    long countUnreadByDestinatarioAndClub(@Param("destinatario") User destinatario, @Param("club") Club club);
+
+    /**
+     * Encuentra notificaciones de un usuario filtradas por club (incluye notificaciones sin club).
+     *
+     * @param destinatario el destinatario
+     * @param club el club (puede ser null)
+     * @return lista de notificaciones del club o sin club específico
+     */
+    @Query("SELECT n FROM Notificacion n WHERE n.destinatario = :destinatario AND (n.club = :club OR n.club IS NULL) ORDER BY n.fechaEnvio DESC")
+    List<Notificacion> findByDestinatarioAndClubOrGlobal(@Param("destinatario") User destinatario, @Param("club") Club club);
 }

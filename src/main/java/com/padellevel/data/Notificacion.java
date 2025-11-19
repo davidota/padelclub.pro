@@ -83,6 +83,14 @@ public class Notificacion extends AbstractEntity {
     @JoinColumn(name = "torneo_id")
     private Torneo torneo;
 
+    /**
+     * Club relacionado con la notificación (opcional).
+     * Permite filtrar notificaciones específicas de un club.
+     */
+    @ManyToOne
+    @JoinColumn(name = "club_id")
+    private Club club;
+
     // Constructores
     public Notificacion() {}
 
@@ -165,5 +173,13 @@ public class Notificacion extends AbstractEntity {
 
     public void setTorneo(Torneo torneo) {
         this.torneo = torneo;
+    }
+
+    public Club getClub() {
+        return club;
+    }
+
+    public void setClub(Club club) {
+        this.club = club;
     }
 }

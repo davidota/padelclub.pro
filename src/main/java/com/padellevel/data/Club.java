@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,6 +22,12 @@ public class Club extends AbstractEntity {
     @NotBlank
     @Column(nullable = false)
     private String nombre;
+
+    /**
+     * Descripción del club.
+     */
+    @Column(length = 2000)
+    private String descripcion;
 
     /**
      * Dirección física del club.
@@ -67,12 +74,34 @@ public class Club extends AbstractEntity {
     private byte[] logo;
 
     /**
-     * Administrador del club.
+     * Administrador principal del club.
      */
     @NotNull
     @ManyToOne(optional = false)
     @JoinColumn(name = "administrador_id", nullable = false)
     private User administrador;
+
+    /**
+     * Staff/empleados del club con permisos de gestión.
+     */
+    @ManyToMany
+    @JoinTable(
+        name = "club_staff",
+        joinColumns = @JoinColumn(name = "club_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private List<User> staff = new ArrayList<>();
+
+    /**
+     * Miembros del club.
+     */
+    @ManyToMany
+    @JoinTable(
+        name = "club_miembros",
+        joinColumns = @JoinColumn(name = "club_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private List<User> miembros = new ArrayList<>();
 
     /**
      * Lista de torneos organizados por este club.
@@ -87,6 +116,18 @@ public class Club extends AbstractEntity {
     private List<Pista> pistas = new ArrayList<>();
 
     /**
+     * Configuración específica del club.
+     */
+    @Embedded
+    private ConfiguracionClub configuracion = new ConfiguracionClub();
+
+    /**
+     * Fecha de creación del club en el sistema.
+     */
+    @Column(name = "fecha_creacion", nullable = false, updatable = false)
+    private LocalDateTime fechaCreacion;
+
+    /**
      * Indica si el club está activo.
      */
     @Column(nullable = false)
@@ -94,6 +135,11 @@ public class Club extends AbstractEntity {
 
     // Constructores
     public Club() {}
+
+    @PrePersist
+    protected void onCreate() {
+        fechaCreacion = LocalDateTime.now();
+    }
 
     // Getters y Setters
     public String getNombre() {
@@ -190,5 +236,112 @@ public class Club extends AbstractEntity {
 
     public void setActivo(Boolean activo) {
         this.activo = activo;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+
+    public List<User> getStaff() {
+        return staff;
+    }
+
+    public void setStaff(List<User> staff) {
+        this.staff = staff;
+    }
+
+    public List<User> getMiembros() {
+        return miembros;
+    }
+
+    public void setMiembros(List<User> miembros) {
+        this.miembros = miembros;
+    }
+
+    public ConfiguracionClub getConfiguracion() {
+        return configuracion;
+    }
+
+    public void setConfiguracion(ConfiguracionClub configuracion) {
+        this.configuracion = configuracion;
+    }
+
+    public LocalDateTime getFechaCreacion() {
+        return fechaCreacion;
+    }
+
+    public void setFechaCreacion(LocalDateTime fechaCreacion) {
+        this.fechaCreacion = fechaCreacion;
+    }
+
+    /**
+     * Agrega un miembro al club.
+     */
+    public void agregarMiembro(User user) {
+        if (!miembros.contains(user)) {
+            miembros.add(user);
+        }
+    }
+
+    /**
+     * Elimina un miembro del club.
+     */
+    public void eliminarMiembro(User user) {
+        miembros.remove(user);
+    }
+
+    /**
+     * Agrega un staff al club.
+     */
+    public void agregarStaff(User user) {
+        if (!staff.contains(user)) {
+            staff.add(user);
+        }
+    }
+
+    /**
+     * Elimina un staff del club.
+     */
+    public void eliminarStaff(User user) {
+        staff.remove(user);
+    }
+
+    /**
+     * Verifica si un usuario es miembro del club.
+     */
+    public boolean esMiembro(User user) {
+        return miembros.contains(user);
+    }
+
+    /**
+     * Verifica si un usuario es staff del club.
+     */
+    public boolean esStaff(User user) {
+        return staff.contains(user);
+    }
+
+    /**
+     * Verifica si un usuario es administrador del club.
+     */
+    public boolean esAdministrador(User user) {
+        return administrador != null && administrador.equals(user);
+    }
+
+    /**
+     * Verifica si un usuario tiene permisos de gestión (admin o staff).
+     */
+    public boolean tienePermisosGestion(User user) {
+        return esAdministrador(user) || esStaff(user);
+    }
+
+    /**
+     * Obtiene el total de miembros del club.
+     */
+    public int getTotalMiembros() {
+        return miembros != null ? miembros.size() : 0;
     }
 }

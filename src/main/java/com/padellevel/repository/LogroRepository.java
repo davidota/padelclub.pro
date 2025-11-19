@@ -1,5 +1,6 @@
 package com.padellevel.repository;
 
+import com.padellevel.data.Club;
 import com.padellevel.data.Logro;
 import com.padellevel.data.User;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -98,4 +99,47 @@ public interface LogroRepository extends JpaRepository<Logro, Long>, JpaSpecific
      */
     @Query("SELECT DISTINCT l.tipo FROM Logro l ORDER BY l.tipo")
     List<String> findDistinctTipos();
+
+    /**
+     * Encuentra logros por club.
+     *
+     * @param club el club
+     * @return lista de logros del club
+     */
+    List<Logro> findByClub(Club club);
+
+    /**
+     * Encuentra logros globales (sin club específico).
+     *
+     * @return lista de logros globales
+     */
+    List<Logro> findByClubIsNull();
+
+    /**
+     * Encuentra logros por club o globales.
+     *
+     * @param club el club (puede ser null para obtener solo globales)
+     * @return lista de logros del club y globales
+     */
+    @Query("SELECT l FROM Logro l WHERE l.club = :club OR l.club IS NULL")
+    List<Logro> findByClubOrGlobal(@Param("club") Club club);
+
+    /**
+     * Encuentra logros de un jugador en un club específico.
+     *
+     * @param jugador el jugador
+     * @param club el club
+     * @return lista de logros del jugador en el club
+     */
+    @Query("SELECT l FROM Logro l JOIN l.jugadores j WHERE j = :jugador AND (l.club = :club OR l.club IS NULL)")
+    List<Logro> findByJugadorAndClub(@Param("jugador") User jugador, @Param("club") Club club);
+
+    /**
+     * Cuenta logros por club.
+     *
+     * @param club el club
+     * @return número de logros del club
+     */
+    @Query("SELECT COUNT(l) FROM Logro l WHERE l.club = :club")
+    long countByClub(@Param("club") Club club);
 }

@@ -123,6 +123,27 @@ public class User extends AbstractEntity {
     private LocalDateTime ultimoAcceso;
 
     /**
+     * Clubes de los cuales el usuario es miembro.
+     */
+    @ManyToMany(mappedBy = "miembros")
+    @JsonIgnore
+    private List<Club> clubes = new ArrayList<>();
+
+    /**
+     * Clubes en los que el usuario es staff.
+     */
+    @ManyToMany(mappedBy = "staff")
+    @JsonIgnore
+    private List<Club> clubesStaff = new ArrayList<>();
+
+    /**
+     * Club actual seleccionado por el usuario (para contexto de sesión).
+     * No persiste, se gestiona en sesión.
+     */
+    @Transient
+    private Club clubActual;
+
+    /**
      * Campo transitorio para contraseña en texto plano (no se persiste).
      */
     @Transient
@@ -379,5 +400,76 @@ public class User extends AbstractEntity {
      */
     public boolean isPlayer() {
         return hasRole(Role.PLAYER);
+    }
+
+    public List<Club> getClubes() {
+        return clubes;
+    }
+
+    public void setClubes(List<Club> clubes) {
+        this.clubes = clubes;
+    }
+
+    public List<Club> getClubesStaff() {
+        return clubesStaff;
+    }
+
+    public void setClubesStaff(List<Club> clubesStaff) {
+        this.clubesStaff = clubesStaff;
+    }
+
+    public Club getClubActual() {
+        return clubActual;
+    }
+
+    public void setClubActual(Club clubActual) {
+        this.clubActual = clubActual;
+    }
+
+    /**
+     * Verifica si el usuario pertenece a algún club.
+     */
+    public boolean tieneClubs() {
+        return clubes != null && !clubes.isEmpty();
+    }
+
+    /**
+     * Verifica si el usuario es miembro de un club específico.
+     */
+    public boolean esMiembroDeClub(Club club) {
+        return clubes != null && clubes.contains(club);
+    }
+
+    /**
+     * Verifica si el usuario es staff de un club específico.
+     */
+    public boolean esStaffDeClub(Club club) {
+        return clubesStaff != null && clubesStaff.contains(club);
+    }
+
+    /**
+     * Verifica si el usuario tiene permisos de gestión en un club.
+     */
+    public boolean tienePermisosGestionEnClub(Club club) {
+        if (club == null) return false;
+        return club.esAdministrador(this) || club.esStaff(this);
+    }
+
+    /**
+     * Obtiene todos los clubes donde el usuario tiene permisos (miembro, staff o admin).
+     */
+    public List<Club> getTodosLosClubes() {
+        List<Club> todos = new ArrayList<>();
+        if (clubes != null) {
+            todos.addAll(clubes);
+        }
+        if (clubesStaff != null) {
+            for (Club club : clubesStaff) {
+                if (!todos.contains(club)) {
+                    todos.add(club);
+                }
+            }
+        }
+        return todos;
     }
 }

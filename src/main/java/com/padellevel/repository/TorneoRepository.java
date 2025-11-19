@@ -3,6 +3,8 @@ package com.padellevel.repository;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -118,5 +120,88 @@ public interface TorneoRepository extends JpaRepository<Torneo, Long>, JpaSpecif
      */
     Long countByClubId(Long clubId);
 
-    // ...remove any redundant queries if present...
+    /**
+     * Encuentra torneos por club con paginación.
+     *
+     * @param club el club
+     * @param pageable configuración de paginación
+     * @return página de torneos del club
+     */
+    Page<Torneo> findByClub(Club club, Pageable pageable);
+
+    /**
+     * Encuentra torneos por club y estado.
+     *
+     * @param club el club
+     * @param estado el estado del torneo
+     * @return lista de torneos
+     */
+    List<Torneo> findByClubAndEstado(Club club, EstadoTorneo estado);
+
+    /**
+     * Encuentra torneos por club y estado con paginación.
+     *
+     * @param club el club
+     * @param estado el estado del torneo
+     * @param pageable configuración de paginación
+     * @return página de torneos
+     */
+    Page<Torneo> findByClubAndEstado(Club club, EstadoTorneo estado, Pageable pageable);
+
+    /**
+     * Encuentra torneos activos de un club.
+     *
+     * @param club el club
+     * @return lista de torneos activos
+     */
+    @Query("SELECT t FROM Torneo t WHERE t.club = :club AND t.estado NOT IN ('FINALIZADO', 'CANCELADO')")
+    List<Torneo> findActivosByClub(@Param("club") Club club);
+
+    /**
+     * Busca torneos por nombre dentro de un club.
+     *
+     * @param club el club
+     * @param nombre término de búsqueda
+     * @return lista de torneos que coinciden
+     */
+    @Query("SELECT t FROM Torneo t WHERE t.club = :club AND LOWER(t.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))")
+    List<Torneo> searchByClubAndNombre(@Param("club") Club club, @Param("nombre") String nombre);
+
+    /**
+     * Busca torneos por nombre dentro de un club con paginación.
+     *
+     * @param club el club
+     * @param nombre término de búsqueda
+     * @param pageable configuración de paginación
+     * @return página de torneos que coinciden
+     */
+    @Query("SELECT t FROM Torneo t WHERE t.club = :club AND LOWER(t.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))")
+    Page<Torneo> searchByClubAndNombre(@Param("club") Club club, @Param("nombre") String nombre, Pageable pageable);
+
+    /**
+     * Busca torneos por nombre ignorando mayúsculas.
+     *
+     * @param nombre el término de búsqueda
+     * @param pageable configuración de paginación
+     * @return página de torneos que coinciden
+     */
+    Page<Torneo> findByNombreContainingIgnoreCase(String nombre, Pageable pageable);
+
+    /**
+     * Encuentra torneos por estado con paginación.
+     *
+     * @param estado el estado
+     * @param pageable configuración de paginación
+     * @return página de torneos
+     */
+    Page<Torneo> findByEstado(EstadoTorneo estado, Pageable pageable);
+
+    /**
+     * Encuentra torneos excluyendo ciertos estados.
+     *
+     * @param estados estados a excluir
+     * @param pageable configuración de paginación
+     * @return página de torneos
+     */
+    Page<Torneo> findByEstadoNotIn(List<EstadoTorneo> estados, Pageable pageable);
 }
